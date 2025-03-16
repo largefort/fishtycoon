@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Idle Fishing Tycoon</title>
+  <style>
+    /* Fishing-themed styling for smartphones */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom, #00aaff, #0077be);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header {
+      background: #005f99;
+      width: 100%;
+      text-align: center;
+      padding: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    #notification {
+      background: #ffc107;
+      color: #000;
+      padding: 10px;
+      text-align: center;
+      width: 100%;
+      display: none;
+    }
+    #game {
+      flex: 1;
+      width: 100%;
+      padding: 15px;
+      box-sizing: border-box;
+    }
+    #fishCount {
+      font-size: 2em;
+      margin: 10px 0;
+      text-align: center;
+    }
+    button {
+      background: #ff5722;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1em;
+      border-radius: 5px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #e64a19;
+    }
+    h2 {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .section {
+      margin: 10px 0;
+    }
+    .building {
+      background: rgba(255,255,255,0.2);
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    .building button {
+      margin-top: 5px;
+      display: block;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Idle Fishing Tycoon</h1>
+  </header>
+  <div id="notification"></div>
+  <div id="game">
+    <div id="fishCount">Fish: 0</div>
+    <button id="fishButton">Cast Your Line!</button>
+    
+    <div id="buildings" class="section">
+      <h2>Fishing Buildings</h2>
+      <div id="buildingList"></div>
+    </div>
+  </div>
+  
+  <script>
+    // Game state variables
+    let fish = 0;
+    // This variable is used to animate the fish counter when decreasing.
+    let displayedFish = fish;
+    
+    // Define fishing-themed production buildings.
+    // Each building has:
+    // - count: number owned
+    // - cost: current purchase cost (increases after each purchase)
+    // - baseProduction: production per building at level 1
+    // - level: current upgrade level (affects all owned buildings)
+    // - upgradeCost: current cost to upgrade this building type
+    const buildings = [
+      { 
+        id: 'fishingBoat', 
+        name: 'Fishing Boat', 
+        count: 0, 
+        baseCost: 50, 
+        cost: 50, 
+        baseProduction: 1, 
+        level: 1, 
+        upgradeCost: 100 
+      },
+      { 
+        id: 'netWorkshop', 
+        name: 'Net Workshop', 
+        count: 0, 
+        baseCost: 200, 
+        cost: 200, 
+        baseProduction: 5, 
+        level: 1, 
+        upgradeCost: 400 
+      },
+      { 
+        id: 'fishMarket', 
+        name: 'Fish Market', 
+        count: 0, 
+        baseCost: 1000, 
+        cost: 1000, 
+        baseProduction: 20, 
+        level: 1, 
+        upgradeCost: 2000 
+      },
+      { 
+        id: 'harborDock', 
+        name: 'Harbor Dock', 
+        count: 0, 
+        baseCost: 5000, 
+        cost: 5000, 
+        baseProduction: 100, 
+        level: 1, 
+        upgradeCost: 10000 
+      },
+      { 
+        id: 'baitFactory', 
+        name: 'Bait Factory', 
+        count: 0, 
+        baseCost: 20000, 
+        cost: 20000, 
+        baseProduction: 500, 
+        level: 1, 
+        upgradeCost: 40000 
+      },
+      { 
+        id: 'offshoreVessel', 
+        name: 'Offshore Vessel', 
+        count: 0, 
+        baseCost: 100000, 
+        cost: 100000, 
+        baseProduction: 2000, 
+        level: 1, 
+        upgradeCost: 200000 
+      },
+      { 
+        id: 'aquacultureFarm', 
+        name: 'Aquaculture Farm', 
+        count: 0, 
+        baseCost: 500000, 
+        cost: 500000, 
+        baseProduction: 5000, 
+        level: 1, 
+        upgradeCost: 1000000 
+      }
+    ];
+    
+    // DOM Elements
+    const fishCountEl = document.getElementById('fishCount');
+    const fishButton = document.getElementById('fishButton');
+    const buildingListEl = document.getElementById('buildingList');
+    const notificationEl = document.getElementById('notification');
+    
+    // Function to animate the fish counter when it decreases
+    function animateNumber(start, end, element, duration) {
+      let startTime = null;
+      function animate(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const progress = timestamp - startTime;
+        const current = start - ((start - end) * (progress / duration));
+        element.textContent = 'Fish: ' + Math.floor(current);
+        if (progress < duration) {
+          requestAnimationFrame(animate);
+        } else {
+          element.textContent = 'Fish: ' + Math.floor(end);
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+    
+    // Update fish count display; animate decrease if fish has been spent
+    function updateFishCount() {
+      if (fish < displayedFish) {
+        // Animate over 500ms when fish decreases
+        animateNumber(displayedFish, fish, fishCountEl, 500);
+      } else {
+        fishCountEl.textContent = 'Fish: ' + Math.floor(fish);
+      }
+      displayedFish = fish;
+    }
+    
+    // Update the display for each building type
+    function updateBuildings() {
+      buildingListEl.innerHTML = '';
+      buildings.forEach((building, index) => {
+        const div = document.createElement('div');
+        div.className = 'building';
+        div.innerHTML = `
+          <strong>${building.name}</strong><br>
+          Owned: ${building.count}<br>
+          Level: ${building.level}<br>
+          Buy Cost: ${building.cost} Fish<br>
+          Upgrade Cost: ${building.upgradeCost} Fish<br>
+          Production: ${building.count * building.baseProduction * building.level} Fish/sec
+        `;
+        
+        // Button to buy a new building of this type
+        const buyBtn = document.createElement('button');
+        buyBtn.textContent = `Buy ${building.name}`;
+        buyBtn.addEventListener('click', () => buyBuilding(index));
+        div.appendChild(buyBtn);
+        
+        // Button to upgrade this building type (increases level by 1)
+        const upgradeBtn = document.createElement('button');
+        upgradeBtn.textContent = `Upgrade ${building.name} (Level +1)`;
+        upgradeBtn.addEventListener('click', () => upgradeBuilding(index));
+        div.appendChild(upgradeBtn);
+        
+        buildingListEl.appendChild(div);
+      });
+    }
+    
+    // Purchase a building
+    function buyBuilding(index) {
+      const building = buildings[index];
+      if (fish >= building.cost) {
+        fish -= building.cost;
+        building.count++;
+        // Increase cost by 15% per purchase
+        building.cost = Math.floor(building.cost * 1.15);
+        updateFishCount();
+        updateBuildings();
+      } else {
+        alert(`Not enough fish to buy a ${building.name}`);
+      }
+    }
+    
+    // Upgrade a building type
+    function upgradeBuilding(index) {
+      const building = buildings[index];
+      if (fish >= building.upgradeCost) {
+        fish -= building.upgradeCost;
+        building.level++;
+        // Increase upgrade cost for next level (doubling for example)
+        building.upgradeCost = Math.floor(building.upgradeCost * 2);
+        updateFishCount();
+        updateBuildings();
+      } else {
+        alert(`Not enough fish to upgrade ${building.name}`);
+      }
+    }
+    
+    // Manual fishing: each click yields 1 fish
+    fishButton.addEventListener('click', () => {
+      fish += 1;
+      updateFishCount();
+    });
+    
+    // Calculate total production per second from all buildings
+    function totalProduction() {
+      let production = 0;
+      buildings.forEach(building => {
+        production += building.count * building.baseProduction * building.level;
+      });
+      return production;
+    }
+    
+    // Passive income: add production-based fish every 1000ms (1 second)
+    setInterval(() => {
+      fish += totalProduction();
+      updateFishCount();
+    }, 1000);
+    
+    // Offline progress: calculate fish produced while away
+    function checkOfflineProgress() {
+      const lastTime = localStorage.getItem('lastTime');
+      const now = Date.now();
+      if (lastTime) {
+        const secondsOffline = Math.floor((now - lastTime) / 1000);
+        if (secondsOffline > 0) {
+          const offlineFish = totalProduction() * secondsOffline;
+          fish += offlineFish;
+          showNotification(`While you were away for ${secondsOffline} seconds, your buildings caught ${Math.floor(offlineFish)} fish!`);
+        }
+      }
+      localStorage.setItem('lastTime', now);
+      updateFishCount();
+    }
+    
+    // Display an offline progress notification
+    function showNotification(message) {
+      notificationEl.textContent = message;
+      notificationEl.style.display = 'block';
+      setTimeout(() => {
+        notificationEl.style.display = 'none';
+      }, 5000);
+    }
+    
+    // Initialize game display and calculate offline progress
+    updateFishCount();
+    updateBuildings();
+    checkOfflineProgress();
+    
+    // Save last played timestamp before unloading the page
+    window.addEventListener('beforeunload', () => {
+      localStorage.setItem('lastTime', Date.now());
+    });
+  </script>
+</body>
+</html>
