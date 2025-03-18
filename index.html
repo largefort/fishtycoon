@@ -286,23 +286,9 @@
                             </div>
                         </div>
                         
-                        <div class="encyclopedia-controls">
-                            <div class="filter-options">
-                                <select v-model="encyclopediaFilter">
-                                    <option value="all">All Fish</option>
-                                    <option value="discovered">Discovered Only</option>
-                                    <option value="common">Common</option>
-                                    <option value="uncommon">Uncommon</option>
-                                    <option value="rare">Rare</option>
-                                    <option value="epic">Epic</option>
-                                    <option value="legendary">Legendary</option>
-                                </select>
-                            </div>
-                        </div>
-                        
                         <div class="encyclopedia-content">
                             <div 
-                                v-for="fish in paginatedEncyclopediaFish" 
+                                v-for="fish in encyclopedia" 
                                 :key="fish.id" 
                                 class="fish-card" 
                                 :class="{ 'locked': !fish.discovered }"
@@ -378,8 +364,6 @@
                                                 </div>
                                             </div>
                                             
-                                            <div class="fish-description" v-if="selectedFish.description">{{ selectedFish.description }}</div>
-                                            
                                             <div class="catch-history">
                                                 <p>First discovered at location: {{ selectedFish.location }}</p>
                                             </div>
@@ -413,50 +397,6 @@
                         </button>
                     </div>
                 </div>
-            </div>
-            
-            <div class="encyclopedia-pagination" v-if="totalEncyclopediaPages > 1">
-                <button 
-                    class="page-button" 
-                    @click="changeEncyclopediaPage(1)" 
-                    :disabled="encyclopediaPage === 1"
-                >
-                    First
-                </button>
-                <button 
-                    class="page-button" 
-                    @click="changeEncyclopediaPage(encyclopediaPage - 1)" 
-                    :disabled="encyclopediaPage === 1"
-                >
-                    &lt;
-                </button>
-                
-                <button 
-                    v-for="page in Math.min(5, totalEncyclopediaPages)" 
-                    :key="page"
-                    class="page-button" 
-                    :class="{ active: encyclopediaPage === page }"
-                    @click="changeEncyclopediaPage(page)"
-                >
-                    {{ page }}
-                </button>
-                
-                <span v-if="totalEncyclopediaPages > 5">...</span>
-                
-                <button 
-                    class="page-button" 
-                    @click="changeEncyclopediaPage(encyclopediaPage + 1)" 
-                    :disabled="encyclopediaPage === totalEncyclopediaPages"
-                >
-                    &gt;
-                </button>
-                <button 
-                    class="page-button" 
-                    @click="changeEncyclopediaPage(totalEncyclopediaPages)" 
-                    :disabled="encyclopediaPage === totalEncyclopediaPages"
-                >
-                    Last
-                </button>
             </div>
             
             <div class="ad-container">
