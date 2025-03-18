@@ -1,4 +1,82 @@
 import { createApp, ref, computed, watch, onMounted, reactive } from 'vue';
+import { CONFIG } from './config.js';
+import { LocationRenderer } from './location-renderer.js';
+
+// Title screen and loading screen handling
+document.addEventListener('DOMContentLoaded', () => {
+    // Set game version from config
+    document.querySelector('.game-version').textContent = `v${CONFIG.version}`;
+    
+    // Initialize location renderer
+    const locationRenderer = new LocationRenderer();
+    window.locationRenderer = locationRenderer; // Make it accessible globally
+    
+    // Prerender all location canvases
+    const locationIds = ['pond', 'lake', 'river', 'ocean'];
+    locationIds.forEach(id => {
+        locationRenderer.getLocationCanvas(id);
+    });
+    
+    // Array of tips to show during loading
+    const loadingTips = [
+        "Higher quality fishing rods catch more fish per cast!",
+        "Different locations have different types of fish to catch.",
+        "Upgrade your boat to access deeper waters and rare fish.",
+        "Auto-fishers work even when you're away from the game.",
+        "Check the Fish Encyclopedia to track your collection progress."
+    ];
+    
+    // Start button click handler
+    document.getElementById('start-game').addEventListener('click', () => {
+        // Hide title screen
+        const titleScreen = document.getElementById('title-screen');
+        titleScreen.style.opacity = '0';
+        
+        // Show loading screen
+        const loadingScreen = document.getElementById('loading-screen');
+        loadingScreen.classList.add('active');
+        
+        // Start loading bar animation
+        const loadingBar = document.querySelector('.loading-bar');
+        const loadingTip = document.getElementById('loading-tip');
+        let progress = 0;
+        
+        // Show random loading tip
+        loadingTip.textContent = loadingTips[Math.floor(Math.random() * loadingTips.length)];
+        
+        // Calculate a random loading time between min and max durations
+        const loadingDuration = Math.random() * 
+            (CONFIG.loadingScreen.maxDuration - CONFIG.loadingScreen.minDuration) + 
+            CONFIG.loadingScreen.minDuration;
+        
+        // Animate loading bar
+        const loadingInterval = setInterval(() => {
+            progress += 1;
+            loadingBar.style.width = `${progress}%`;
+            
+            // When loading reaches 100%, show the game
+            if (progress >= 100) {
+                clearInterval(loadingInterval);
+                
+                // Wait a moment to show 100% before hiding loading screen
+                setTimeout(() => {
+                    // Hide loading screen
+                    loadingScreen.classList.remove('active');
+                    
+                    // Show app
+                    const app = document.getElementById('app');
+                    app.classList.remove('hidden-app');
+                    app.classList.add('visible-app');
+                    
+                    // Add a small delay to ensure title screen is fully hidden
+                    setTimeout(() => {
+                        titleScreen.classList.remove('active');
+                    }, 500);
+                }, 500);
+            }
+        }, loadingDuration / 100);
+    });
+});
 
 createApp({
     setup() {
@@ -28,158 +106,17 @@ createApp({
         const showBoatCustomization = ref(false);
         const activeTab = ref('locations');
 
-        // Fish generation system for 700+ fish types
-        const fishRarities = ref([
-            { id: 'common', name: 'Common', chance: 0.6, valueMultiplier: 1, colorRange: ['#6495ED', '#87CEEB', '#4682B4', '#20B2AA', '#5F9EA0'] },
-            { id: 'uncommon', name: 'Uncommon', chance: 0.25, valueMultiplier: 3, colorRange: ['#3CB371', '#2E8B57', '#8FBC8F', '#66CDAA', '#7FFFD4'] },
-            { id: 'rare', name: 'Rare', chance: 0.1, valueMultiplier: 10, colorRange: ['#FFD700', '#DAA520', '#F0E68C', '#BDB76B', '#FFFF00'] },
-            { id: 'epic', name: 'Epic', chance: 0.04, valueMultiplier: 50, colorRange: ['#9932CC', '#8A2BE2', '#9370DB', '#BA55D3', '#EE82EE'] },
-            { id: 'legendary', name: 'Legendary', chance: 0.01, valueMultiplier: 200, colorRange: ['#FF4500', '#FF0000', '#FF6347', '#FF7F50', '#FFA07A'] }
-        ]);
-        
-        const fishPrefixes = [
-            'Northern', 'Southern', 'Eastern', 'Western', 'Spotted', 'Striped', 'Golden', 'Silver', 'Bronze', 'Copper',
-            'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Black', 'White', 'Orange', 'Teal', 'Violet',
-            'Tiny', 'Small', 'Large', 'Giant', 'Massive', 'Dwarf', 'Pygmy', 'Colossal', 'Miniature', 'Enormous',
-            'Deep', 'Shallow', 'Coastal', 'Oceanic', 'Abyssal', 'Reef', 'Tropical', 'Arctic', 'Desert', 'Mountain',
-            'Spiny', 'Smooth', 'Rough', 'Slimy', 'Scaly', 'Armored', 'Fanged', 'Toothy', 'Whiskered', 'Finned',
-            'Ancient', 'Prehistoric', 'Futuristic', 'Primal', 'Evolved', 'Mutant', 'Hybrid', 'Undiscovered', 'Rare', 'Common',
-            'Swift', 'Slow', 'Darting', 'Lurking', 'Hunting', 'Scavenging', 'Predatory', 'Peaceful', 'Aggressive', 'Timid'
-        ];
-        
-        const fishNames = [
-            'Trout', 'Bass', 'Salmon', 'Perch', 'Pike', 'Cod', 'Tuna', 'Marlin', 'Swordfish', 'Shark',
-            'Catfish', 'Carp', 'Eel', 'Barracuda', 'Grouper', 'Snapper', 'Flounder', 'Halibut', 'Mackerel', 'Sardine',
-            'Herring', 'Anchovy', 'Haddock', 'Pollock', 'Tilapia', 'Mahimahi', 'Wahoo', 'Bonefish', 'Tarpon', 'Snook',
-            'Crappie', 'Bluegill', 'Sunfish', 'Walleye', 'Sturgeon', 'Grayling', 'Whitefish', 'Drum', 'Sheepshead', 'Pompano',
-            'Ray', 'Skate', 'Sole', 'Plaice', 'Goby', 'Blenny', 'Wrasse', 'Triggerfish', 'Pufferfish', 'Boxfish',
-            'Angelfish', 'Butterflyfish', 'Parrotfish', 'Surgeonfish', 'Lionfish', 'Clownfish', 'Damselfish', 'Cardinalfish', 'Gobies', 'Hawkfish',
-            'Arowanas', 'Cichlids', 'Discus', 'Guppies', 'Tetras', 'Barbs', 'Rasboras', 'Loaches', 'Corydoras', 'Plecos'
-        ];
-        
-        const fishSuffixes = [
-            'of the Deep', 'of the Shallows', 'of the Reefs', 'of the Coast', 'of the Abyss', 
-            'of the North', 'of the South', 'of the East', 'of the West', 'of the Arctic',
-            'Darter', 'Jumper', 'Lurker', 'Hunter', 'Chaser', 'Stalker', 'Prowler', 'Guardian', 'Defender', 'Predator',
-            'Eater', 'Swallower', 'Chomper', 'Gulper', 'Biter', 'Snapper', 'Gnasher', 'Muncher', 'Cruncher', 'Nibbler',
-            'Fin', 'Gill', 'Scale', 'Spine', 'Jaw', 'Mouth', 'Eye', 'Tail', 'Whisker', 'Barb',
-            'King', 'Queen', 'Prince', 'Princess', 'Duke', 'Duchess', 'Lord', 'Lady', 'Emperor', 'Empress',
-            'Warden', 'Sentinel', 'Guardian', 'Keeper', 'Protector', 'Defender', 'Champion', 'Hero', 'Titan', 'Colossus'
-        ];
-        
-        // Adjectives for fish descriptions
-        const fishAdjectives = [
-            'colorful', 'vibrant', 'striking', 'beautiful', 'graceful', 'elegant', 'majestic', 'magnificent', 'impressive', 'dazzling',
-            'stealthy', 'crafty', 'cunning', 'clever', 'intelligent', 'wily', 'shrewd', 'sly', 'deceptive', 'elusive',
-            'fierce', 'mighty', 'powerful', 'strong', 'robust', 'hardy', 'tough', 'resilient', 'enduring', 'tenacious',
-            'rare', 'uncommon', 'unusual', 'unique', 'extraordinary', 'exceptional', 'exquisite', 'remarkable', 'special', 'distinct',
-            'ancient', 'primordial', 'prehistoric', 'primal', 'primitive', 'ancestral', 'archaic', 'timeless', 'eternal', 'everlasting'
-        ];
-        
-        // Actions for fish descriptions
-        const fishActions = [
-            'swimming', 'darting', 'gliding', 'maneuvering', 'navigating', 'cruising', 'patrolling', 'exploring', 'traversing', 'roaming',
-            'hunting', 'stalking', 'pursuing', 'chasing', 'tracking', 'ambushing', 'attacking', 'striking', 'pouncing', 'lunging',
-            'feeding', 'grazing', 'foraging', 'scavenging', 'browsing', 'consuming', 'devouring', 'eating', 'dining', 'feasting',
-            'hiding', 'lurking', 'concealing', 'camouflaging', 'blending', 'obscuring', 'sheltering', 'retreating', 'evading', 'escaping',
-            'resting', 'sleeping', 'floating', 'drifting', 'hovering', 'suspending', 'lingering', 'waiting', 'pausing', 'idling'
-        ];
-        
-        // Habitats for fish descriptions
-        const fishHabitats = [
-            'coral reefs', 'seagrass meadows', 'kelp forests', 'rocky shores', 'sandy bottoms', 'open ocean', 'deep sea', 'coastal waters', 'estuaries', 'mangroves',
-            'freshwater lakes', 'rivers', 'streams', 'ponds', 'swamps', 'marshes', 'wetlands', 'lagoons', 'bayous', 'creeks',
-            'mountain springs', 'alpine lakes', 'glacial waters', 'arctic seas', 'tropical waters', 'temperate zones', 'submarine canyons', 'oceanic trenches', 'seamounts', 'hydrothermal vents',
-            'caves', 'crevices', 'overhangs', 'drop-offs', 'slopes', 'flats', 'shallows', 'depths', 'surface waters', 'midwater zones',
-            'wrecks', 'artificial reefs', 'docks', 'piers', 'harbors', 'bays', 'sounds', 'inlets', 'fjords', 'straits'
-        ];
+        // Add state for offline progress
+        const lastOnlineTime = ref(Date.now());
+        const showOfflineModal = ref(false);
+        const offlineEarnings = ref({
+            money: 0,
+            fishCaught: 0,
+            timeAway: 0
+        });
 
-        // Generate a complete set of fish for the game
-        function generateAllFish() {
-            const allFish = [];
-            const locationTypes = ['pond', 'lake', 'river', 'ocean'];
-            const totalFishCount = 700;
-            
-            // Generate unique fish for each location with proper distribution
-            for (let i = 0; i < totalFishCount; i++) {
-                // Determine rarity based on index (make sure we have good distribution)
-                let rarityIndex;
-                if (i < totalFishCount * 0.6) rarityIndex = 0; // common
-                else if (i < totalFishCount * 0.85) rarityIndex = 1; // uncommon
-                else if (i < totalFishCount * 0.95) rarityIndex = 2; // rare
-                else if (i < totalFishCount * 0.99) rarityIndex = 3; // epic
-                else rarityIndex = 4; // legendary
-                
-                const rarity = fishRarities.value[rarityIndex];
-                
-                // Assign to a location
-                const locationIndex = Math.floor(i / (totalFishCount / locationTypes.length));
-                const location = locationTypes[Math.min(locationIndex, locationTypes.length - 1)];
-                
-                // Generate a unique name
-                const prefix = fishPrefixes[Math.floor(Math.random() * fishPrefixes.length)];
-                const baseName = fishNames[Math.floor(Math.random() * fishNames.length)];
-                let suffix = '';
-                
-                // Add suffix to higher rarity fish
-                if (rarityIndex >= 2 && Math.random() > 0.5) {
-                    suffix = ' ' + fishSuffixes[Math.floor(Math.random() * fishSuffixes.length)];
-                }
-                
-                const name = `${prefix} ${baseName}${suffix}`;
-                
-                // Pick a color from the rarity's color range
-                const color = rarity.colorRange[Math.floor(Math.random() * rarity.colorRange.length)];
-                
-                // Generate min/max depth based on rarity
-                const minDepth = 20 + (rarityIndex * 10);
-                const maxDepth = Math.min(100, minDepth + 30 + (rarityIndex * 5));
-                
-                // Generate random size parameters
-                const sizeMin = 0.1 + (rarityIndex * 0.2);
-                const sizeMax = sizeMin + 0.3 + (rarityIndex * 0.4);
-                
-                // Generate random weight parameters
-                const weightMin = 0.2 + (rarityIndex * 0.5);
-                const weightMax = weightMin + 0.8 + (rarityIndex * 1.2);
-                
-                // Generate description
-                const adjective = fishAdjectives[Math.floor(Math.random() * fishAdjectives.length)];
-                const action = fishActions[Math.floor(Math.random() * fishActions.length)];
-                const habitat = fishHabitats[Math.floor(Math.random() * fishHabitats.length)];
-                
-                const description = `A ${adjective} fish often seen ${action} in ${habitat}. This ${rarity.name.toLowerCase()} specimen is prized by collectors.`;
-                
-                // Calculate value based on rarity
-                const baseValue = (1 + Math.floor(Math.random() * 5)) * rarity.valueMultiplier;
-                
-                // Create the fish entry
-                const fish = {
-                    id: `fish_${i}`,
-                    name: name,
-                    color: color,
-                    chance: rarity.chance / (1 + rarityIndex), // Adjust chance to make higher rarities less common
-                    value: baseValue,
-                    rarity: rarity.id,
-                    rarityName: rarity.name,
-                    minDepth: minDepth,
-                    maxDepth: maxDepth,
-                    location: location,
-                    sizeMin: sizeMin,
-                    sizeMax: sizeMax,
-                    weightMin: weightMin,
-                    weightMax: weightMax,
-                    description: description
-                };
-                
-                allFish.push(fish);
-            }
-            
-            return allFish;
-        }
-
-        // All fish in the game
-        const allGameFish = ref([]);
+        // Initialize location renderer
+        const locationRenderer = window.locationRenderer || new LocationRenderer();
         
         // Fishing locations
         const fishingLocations = ref([
@@ -191,7 +128,13 @@ createApp({
                 unlocked: true,
                 price: 0,
                 image: 'pond',
-                fishTypes: [] // Will be populated with generated fish
+                canvasImage: null, // Will be filled by canvas
+                fishTypes: [
+                    { id: 'common1', name: "Common Fish", chance: 0.6, value: 1, color: "#6495ED", minDepth: 20, maxDepth: 50 },
+                    { id: 'rare1', name: "Rare Fish", chance: 0.3, value: 5, color: "#FFD700", minDepth: 40, maxDepth: 70 },
+                    { id: 'epic1', name: "Epic Fish", chance: 0.09, value: 25, color: "#9932CC", minDepth: 60, maxDepth: 90 },
+                    { id: 'legendary1', name: "Legendary Fish", chance: 0.01, value: 150, color: "#FF4500", minDepth: 80, maxDepth: 100 }
+                ]
             },
             {
                 id: 'lake',
@@ -201,7 +144,13 @@ createApp({
                 unlocked: false,
                 price: 1000,
                 image: 'lake',
-                fishTypes: [] // Will be populated with generated fish
+                canvasImage: null, // Will be filled by canvas
+                fishTypes: [
+                    { id: 'common2', name: "Lake Trout", chance: 0.5, value: 3, color: "#20B2AA", minDepth: 20, maxDepth: 50 },
+                    { id: 'rare2', name: "Mountain Bass", chance: 0.3, value: 8, color: "#DAA520", minDepth: 40, maxDepth: 70 },
+                    { id: 'epic2', name: "Rainbow Trout", chance: 0.15, value: 40, color: "#BA55D3", minDepth: 60, maxDepth: 90 },
+                    { id: 'legendary2', name: "Golden Carp", chance: 0.05, value: 200, color: "#FFA500", minDepth: 80, maxDepth: 100 }
+                ]
             },
             {
                 id: 'river',
@@ -211,7 +160,13 @@ createApp({
                 unlocked: false,
                 price: 5000,
                 image: 'river',
-                fishTypes: [] // Will be populated with generated fish
+                canvasImage: null, // Will be filled by canvas
+                fishTypes: [
+                    { id: 'common3', name: "River Perch", chance: 0.45, value: 5, color: "#4682B4", minDepth: 20, maxDepth: 50 },
+                    { id: 'rare3', name: "Silver Salmon", chance: 0.35, value: 15, color: "#C0C0C0", minDepth: 40, maxDepth: 70 },
+                    { id: 'epic3', name: "River Sturgeon", chance: 0.15, value: 60, color: "#9370DB", minDepth: 60, maxDepth: 90 },
+                    { id: 'legendary3', name: "Royal Salmon", chance: 0.05, value: 250, color: "#CD5C5C", minDepth: 80, maxDepth: 100 }
+                ]
             },
             {
                 id: 'ocean',
@@ -221,10 +176,23 @@ createApp({
                 unlocked: false,
                 price: 25000,
                 image: 'ocean',
-                fishTypes: [] // Will be populated with generated fish
+                canvasImage: null, // Will be filled by canvas
+                fishTypes: [
+                    { id: 'common4', name: "Mackerel", chance: 0.4, value: 10, color: "#4169E1", minDepth: 20, maxDepth: 50 },
+                    { id: 'rare4', name: "Tuna", chance: 0.3, value: 30, color: "#1E90FF", minDepth: 40, maxDepth: 70 },
+                    { id: 'epic4', name: "Swordfish", chance: 0.2, value: 100, color: "#8A2BE2", minDepth: 60, maxDepth: 90 },
+                    { id: 'legendary4', name: "Blue Marlin", chance: 0.1, value: 500, color: "#0000CD", minDepth: 80, maxDepth: 100 }
+                ]
             }
         ]);
 
+        // Load canvas images
+        function loadLocationCanvases() {
+            fishingLocations.value.forEach(location => {
+                location.canvasImage = locationRenderer.getLocationCanvas(location.id);
+            });
+        }
+        
         // Boat customization options
         const boatCustomization = ref({
             hull: {
@@ -270,28 +238,23 @@ createApp({
         
         // Initialize encyclopedia with all possible fish
         function initializeEncyclopedia() {
-            allGameFish.value.forEach(fish => {
-                if (!encyclopedia.value[fish.id]) {
-                    encyclopedia.value[fish.id] = {
-                        id: fish.id,
-                        name: fish.name,
-                        color: fish.color,
-                        discovered: false,
-                        caught: 0,
-                        location: getLocationNameById(fish.location),
-                        rarity: fish.rarityName,
-                        value: fish.value,
-                        description: fish.description,
-                        record: { weight: 0, length: 0 }
-                    };
-                }
+            fishingLocations.value.forEach(location => {
+                location.fishTypes.forEach(fish => {
+                    if (!encyclopedia.value[fish.id]) {
+                        encyclopedia.value[fish.id] = {
+                            id: fish.id,
+                            name: fish.name,
+                            color: fish.color,
+                            discovered: false,
+                            caught: 0,
+                            location: location.name,
+                            rarity: getRarityName(fish.chance),
+                            value: fish.value,
+                            record: { weight: 0, length: 0 }
+                        };
+                    }
+                });
             });
-        }
-        
-        // Helper function to get location name by id
-        function getLocationNameById(locationId) {
-            const location = fishingLocations.value.find(loc => loc.id === locationId);
-            return location ? location.name : 'Unknown';
         }
 
         // Helper function to get rarity name
@@ -419,84 +382,54 @@ createApp({
         // Modified catch fish function to use location-specific fish
         function catchFish(isAuto = false) {
             const catchAmount = isAuto ? Math.ceil(autoFishingRate.value) : fishingPower.value;
-            const locationFish = currentFishTypes.value;
-            
-            if (locationFish.length === 0) return;
             
             for (let i = 0; i < catchAmount; i++) {
                 let rand = Math.random();
                 let cumulativeChance = 0;
-                let caughtFish = null;
                 
-                // Sort fish by rarity (so we check rarest first)
-                const sortedFish = [...locationFish].sort((a, b) => a.chance - b.chance);
-                
-                // Try to catch a fish based on chance
-                for (const fish of sortedFish) {
-                    // Adjust chance based on equipment bonuses
-                    let adjustedChance = fish.chance;
-                    const equipment = boatCustomization.value.equipment;
-                    const currentEquipment = equipment.options.find(opt => opt.id === equipment.current);
-                    if (currentEquipment && currentEquipment.rarityBonus) {
-                        // Apply rarity bonus for rarer fish
-                        if (fish.rarity !== 'common') {
-                            adjustedChance += currentEquipment.rarityBonus;
-                        }
-                    }
+                for (const fish of currentFishTypes.value) {
+                    cumulativeChance += fish.chance;
                     
-                    cumulativeChance += adjustedChance;
                     if (rand <= cumulativeChance) {
-                        caughtFish = fish;
+                        // Add fish to inventory
+                        if (!inventory.value[fish.name]) {
+                            inventory.value[fish.name] = 0;
+                        }
+                        inventory.value[fish.name]++;
+                        totalFishCaught.value++;
+                        
+                        // Update encyclopedia
+                        if (encyclopedia.value[fish.id]) {
+                            const encycEntry = encyclopedia.value[fish.id];
+                            encycEntry.caught++;
+                            
+                            if (!encycEntry.discovered) {
+                                encycEntry.discovered = true;
+                                // If this is the first caught fish, unlock encyclopedia
+                                if (!encyclopediaUnlocked.value) {
+                                    encyclopediaUnlocked.value = true;
+                                }
+                            }
+                            
+                            // Generate random weight and length for this catch
+                            const weight = Math.round((fish.value * 0.5 + Math.random() * fish.value * 1.5) * 10) / 10;
+                            const length = Math.round((fish.value * 0.2 + Math.random() * fish.value * 0.4) * 10) / 10;
+                            
+                            // Update record if this is bigger
+                            if (weight > encycEntry.record.weight) {
+                                encycEntry.record.weight = weight;
+                            }
+                            if (length > encycEntry.record.length) {
+                                encycEntry.record.length = length;
+                            }
+                        }
+                        
+                        // Force Vue to recognize the change
+                        inventory.value = { ...inventory.value };
+                        encyclopedia.value = { ...encyclopedia.value };
                         break;
                     }
                 }
-                
-                // If no fish caught, pick a common one
-                if (!caughtFish) {
-                    const commonFish = locationFish.filter(f => f.rarity === 'common');
-                    if (commonFish.length > 0) {
-                        caughtFish = commonFish[Math.floor(Math.random() * commonFish.length)];
-                    } else {
-                        caughtFish = locationFish[0];
-                    }
-                }
-                
-                // Add fish to inventory
-                if (!inventory.value[caughtFish.name]) {
-                    inventory.value[caughtFish.name] = 0;
-                }
-                inventory.value[caughtFish.name]++;
-                totalFishCaught.value++;
-                
-                // Update encyclopedia
-                if (encyclopedia.value[caughtFish.id]) {
-                    const encycEntry = encyclopedia.value[caughtFish.id];
-                    encycEntry.caught++;
-                    
-                    if (!encycEntry.discovered) {
-                        encycEntry.discovered = true;
-                        // If this is the first caught fish, unlock encyclopedia
-                        if (!encyclopediaUnlocked.value) {
-                            encyclopediaUnlocked.value = true;
-                        }
-                    }
-                    
-                    // Generate random weight and length for this catch based on fish parameters
-                    const weight = Math.round((caughtFish.weightMin + Math.random() * (caughtFish.weightMax - caughtFish.weightMin)) * 10) / 10;
-                    const length = Math.round((caughtFish.sizeMin + Math.random() * (caughtFish.sizeMax - caughtFish.sizeMin)) * 10) / 10;
-                    
-                    // Update record if this is bigger
-                    if (weight > encycEntry.record.weight) {
-                        encycEntry.record.weight = weight;
-                    }
-                    if (length > encycEntry.record.length) {
-                        encycEntry.record.length = length;
-                    }
-                }
-                
-                // Force Vue to recognize the change
-                inventory.value = { ...inventory.value };
-                encyclopedia.value = { ...encyclopedia.value };
             }
         }
 
@@ -740,81 +673,165 @@ createApp({
             return Math.round((discoveredFishCount.value / totalFishCount.value) * 100);
         });
 
-        // AdSense related states and functions
-        const adsLoaded = ref(false);
-        
-        function attemptLoadAds() {
-            // This is just a placeholder - actual ad loading is handled by the AdSense script
-            // You can use this to add additional tracking or handling if needed
-            console.log('Attempting to load ads - requires AdSense verification');
+        // Reset progress function with enhanced encyclopedia reset
+        function resetProgress() {
+            if (confirm('Are you sure you want to reset all progress? This cannot be undone!')) {
+                // Clear localStorage
+                localStorage.removeItem('fishingTycoonSave');
+                
+                // Reset all game state
+                money.value = 0;
+                inventory.value = {};
+                totalFishCaught.value = 0;
+                fishingPower.value = 1;
+                autoFishingRate.value = 0;
+                
+                // Reset upgrade levels
+                upgrades.value.forEach(upgrade => {
+                    upgrade.level = upgrade.id === 'rod' || upgrade.id === 'boat' || upgrade.id === 'lure' ? 1 : 0;
+                    upgrade.cost = upgrade.getCost(upgrade.level);
+                });
+                
+                // Reset locations
+                fishingLocations.value.forEach((loc, index) => {
+                    loc.unlocked = index === 0; // Only the first location is unlocked
+                });
+                activeLocationId.value = 'pond'; // Reset to first location
+                
+                // Reset boat customization
+                Object.keys(boatCustomization.value).forEach(partType => {
+                    boatCustomization.value[partType].current = 'basic';
+                    boatCustomization.value[partType].options.forEach(option => {
+                        option.unlocked = option.id === 'basic';
+                    });
+                });
+                
+                // Reset encyclopedia - completely reinitialize it
+                encyclopediaUnlocked.value = false;
+                initializeEncyclopedia();
+                selectedFish.value = null;
+                
+                // Reset auto fishing
+                if (autoFishingInterval) {
+                    clearInterval(autoFishingInterval);
+                    autoFishingInterval = null;
+                }
+                autoFishingActive.value = false;
+                
+                // Update water background to match initial location
+                document.querySelector('.water').style.background = fishingLocations.value[0].background;
+                
+                // Close any open modals
+                showEncyclopedia.value = false;
+                showBoatCustomization.value = false;
+                
+                alert('Game progress has been reset!');
+            }
         }
 
-        // Encyclopedia filtering and pagination
-        const encyclopediaFilter = ref('all');
-        const encyclopediaPage = ref(1);
-        const encyclopediaPageSize = ref(20); // Show 20 fish per page
-        
-        // Filtered encyclopedia fish
-        const filteredEncyclopediaFish = computed(() => {
-            let result = Object.values(encyclopedia.value);
+        // Calculate offline progress
+        function calculateOfflineProgress() {
+            if (!CONFIG.offlineProgress.enabled || autoFishingRate.value <= 0) {
+                return;
+            }
+
+            const now = Date.now();
+            const lastSaved = lastOnlineTime.value || now;
+            const timeAwayMs = now - lastSaved;
             
-            // Apply filters
-            if (encyclopediaFilter.value === 'discovered') {
-                result = result.filter(fish => fish.discovered);
-            } else if (encyclopediaFilter.value !== 'all') {
-                // Filter by rarity
-                result = result.filter(fish => {
-                    const fishData = allGameFish.value.find(f => f.id === fish.id);
-                    return fishData && fishData.rarity === encyclopediaFilter.value;
-                });
+            // Don't calculate if time away is very short (less than 1 minute)
+            if (timeAwayMs < 60000) {
+                return;
             }
             
-            // Sort by discovered first, then by name
-            result.sort((a, b) => {
-                if (a.discovered !== b.discovered) {
-                    return b.discovered ? 1 : -1;
-                }
-                return a.name.localeCompare(b.name);
-            });
+            // Calculate time away in hours, capped at maxHours from config
+            const timeAwayHours = Math.min(timeAwayMs / 3600000, CONFIG.offlineProgress.maxHours);
             
-            return result;
-        });
-        
-        // Total pages for pagination
-        const totalEncyclopediaPages = computed(() => {
-            return Math.ceil(filteredEncyclopediaFish.value.length / encyclopediaPageSize.value);
-        });
-        
-        // Fish to display on current page
-        const paginatedEncyclopediaFish = computed(() => {
-            const startIndex = (encyclopediaPage.value - 1) * encyclopediaPageSize.value;
-            const endIndex = startIndex + encyclopediaPageSize.value;
-            return filteredEncyclopediaFish.value.slice(startIndex, endIndex);
-        });
-        
-        // Change encyclopedia page
-        function changeEncyclopediaPage(page) {
-            encyclopediaPage.value = page;
+            // Calculate fish caught while away
+            const offlineRate = autoFishingRate.value * CONFIG.offlineProgress.efficiencyRate;
+            const offlineCatches = Math.floor(offlineRate * timeAwayHours * 3600); // Convert to seconds
+            
+            if (offlineCatches <= 0) {
+                return;
+            }
+            
+            // Record time away in hours and minutes format for display
+            const hours = Math.floor(timeAwayHours);
+            const minutes = Math.floor((timeAwayHours - hours) * 60);
+            offlineEarnings.value.timeAway = `${hours}h ${minutes}m`;
+            
+            // Simulate fish catches
+            let totalMoney = 0;
+            let totalFish = 0;
+            
+            // Determine how many of each type of fish based on current location
+            const fishTypes = currentFishTypes.value;
+            for (let i = 0; i < offlineCatches; i++) {
+                let rand = Math.random();
+                let cumulativeChance = 0;
+                
+                for (const fish of fishTypes) {
+                    cumulativeChance += fish.chance;
+                    
+                    if (rand <= cumulativeChance) {
+                        // Add fish to inventory
+                        if (!inventory.value[fish.name]) {
+                            inventory.value[fish.name] = 0;
+                        }
+                        inventory.value[fish.name]++;
+                        totalFish++;
+                        
+                        // Calculate money (automatically sell if inventory would get too large)
+                        const maxOfflineInventory = 1000; // Maximum inventory size while offline
+                        if (inventory.value[fish.name] > maxOfflineInventory) {
+                            totalMoney += fish.value;
+                            inventory.value[fish.name]--;
+                        }
+                        
+                        // Update encyclopedia
+                        if (encyclopedia.value[fish.id]) {
+                            const encycEntry = encyclopedia.value[fish.id];
+                            encycEntry.caught++;
+                            
+                            if (!encycEntry.discovered) {
+                                encycEntry.discovered = true;
+                                // If this is the first caught fish, unlock encyclopedia
+                                if (!encyclopediaUnlocked.value) {
+                                    encyclopediaUnlocked.value = true;
+                                }
+                            }
+                        }
+                        
+                        break;
+                    }
+                }
+            }
+            
+            // Update totals
+            totalFishCaught.value += totalFish;
+            money.value += totalMoney;
+            
+            // Set values for offline modal
+            offlineEarnings.value.fishCaught = totalFish;
+            offlineEarnings.value.money = totalMoney;
+            
+            // Show offline modal
+            showOfflineModal.value = true;
+            
+            // Force Vue to recognize the change to inventory
+            inventory.value = { ...inventory.value };
+            encyclopedia.value = { ...encyclopedia.value };
         }
-        
-        // Watch for filter changes
-        watch(encyclopediaFilter, () => {
-            // Reset to first page when filter changes
-            encyclopediaPage.value = 1;
-        });
+
+        // Close offline modal
+        function closeOfflineModal() {
+            showOfflineModal.value = false;
+        }
 
         // Initialize on mount
         onMounted(() => {
-            // Generate all fish in the game
-            allGameFish.value = generateAllFish();
-            
-            // Distribute fish to their appropriate locations
-            fishingLocations.value.forEach(location => {
-                location.fishTypes = allGameFish.value.filter(fish => fish.location === location.id);
-            });
-            
-            // Initialize encyclopedia with all fish
-            initializeEncyclopedia();
+            // Load all canvas images
+            loadLocationCanvases();
             
             // Generate initial fish
             for (let i = 0; i < 8; i++) {
@@ -838,19 +855,8 @@ createApp({
             // Initialize auto-fishing if enabled
             setupAutoFishing();
             
-            // Add resize event listener for responsive adjustments
-            window.addEventListener('resize', () => {
-                // Reset line length if window is resized while fishing
-                if (isFishing.value) {
-                    const maxDepth = window.innerWidth <= 600 ? 200 : 300;
-                    lineLength.value = Math.min(lineLength.value, maxDepth + 50);
-                }
-            });
-
-            // Initialize ads after page loads
-            setTimeout(() => {
-                attemptLoadAds();
-            }, 2000);
+            // Initialize encyclopedia
+            initializeEncyclopedia();
         });
 
         // Load game data
@@ -864,6 +870,13 @@ createApp({
                     totalFishCaught.value = data.totalFishCaught || 0;
                     fishingPower.value = data.fishingPower || 1;
                     autoFishingRate.value = data.autoFishingRate || 0;
+                    
+                    // Load last online time
+                    if (data.lastOnlineTime) {
+                        lastOnlineTime.value = data.lastOnlineTime;
+                        // Calculate offline progress if auto-fishing is active
+                        calculateOfflineProgress();
+                    }
                     
                     // Update upgrade levels
                     if (data.upgrades) {
@@ -925,7 +938,7 @@ createApp({
             }
         });
 
-        // Update save function to include new features
+        // Update save function to include last online time
         watch([
             money, inventory, totalFishCaught, fishingPower, autoFishingRate, upgrades,
             fishingLocations, activeLocationId, boatCustomization, encyclopedia, encyclopediaUnlocked
@@ -944,10 +957,20 @@ createApp({
                 activeLocationId: activeLocationId.value,
                 boatCustomization: boatCustomization.value,
                 encyclopedia: encyclopedia.value,
-                encyclopediaUnlocked: encyclopediaUnlocked.value
+                encyclopediaUnlocked: encyclopediaUnlocked.value,
+                lastOnlineTime: Date.now() // Save current timestamp
             };
             localStorage.setItem('fishingTycoonSave', JSON.stringify(saveData));
         }, { deep: true });
+
+        // Add window event listener to update last online time when page is about to be closed
+        onMounted(() => {
+            window.addEventListener('beforeunload', () => {
+                const saveData = JSON.parse(localStorage.getItem('fishingTycoonSave') || '{}');
+                saveData.lastOnlineTime = Date.now();
+                localStorage.setItem('fishingTycoonSave', JSON.stringify(saveData));
+            });
+        });
 
         return {
             money,
@@ -967,8 +990,6 @@ createApp({
             purchaseUpgrade,
             formatNumber,
             getFishColor,
-            adsLoaded,
-            attemptLoadAds,
             fishingLocations,
             activeLocationId,
             currentLocation,
@@ -990,12 +1011,10 @@ createApp({
             discoveryPercentage,
             activeTab,
             changeTab,
-            encyclopediaFilter,
-            encyclopediaPage,
-            filteredEncyclopediaFish,
-            paginatedEncyclopediaFish,
-            totalEncyclopediaPages,
-            changeEncyclopediaPage
+            resetProgress,
+            showOfflineModal,
+            offlineEarnings,
+            closeOfflineModal
         };
     }
 }).mount('#app');

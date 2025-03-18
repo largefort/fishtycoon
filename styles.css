@@ -10,6 +10,7 @@ body {
     color: #263238;
     min-height: 100vh;
     touch-action: manipulation;
+    overflow-x: hidden;
 }
 
 #app {
@@ -457,77 +458,259 @@ h2 {
     100% { opacity: 0.4; }
 }
 
-.ad-container {
-    background-color: white;
-    border-radius: 12px;
-    padding: 15px;
-    margin: 25px 0;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-    text-align: center;
-    position: relative;
-    min-height: 250px;
+.title-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, #81d4fa, #01579b);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+    pointer-events: none;
     overflow: hidden;
 }
 
-.ad-container.horizontal {
-    min-height: 90px;
+.title-screen.active {
+    opacity: 1;
+    pointer-events: all;
 }
 
-.ad-notice {
+.title-screen::before {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 100%;
+    top: 70%;
+    left: -50%;
+    background: rgba(255, 255, 255, 0.1);
+    transform: rotate(-5deg);
+}
+
+.title-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 800px;
+    padding: 30px;
+    z-index: 10;
+}
+
+.fish-animations {
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(245, 245, 245, 0.8);
-    color: #757575;
-    font-size: 14px;
-    z-index: 1;
-    border: 1px dashed #ccc;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
 }
 
-footer {
-    text-align: center;
-    margin-top: 40px;
-    padding: 15px;
-    background: linear-gradient(135deg, #1976d2, #0d47a1);
-    color: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-.fishing-splash {
+.swimming-fish {
     position: absolute;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.5);
-    z-index: 2;
-    animation: ripple 1s ease-out forwards;
+    top: var(--y-pos);
+    left: -60px;
+    animation: swim-across calc(var(--duration) * 1s) linear var(--delay) infinite;
 }
 
-@keyframes ripple {
+@keyframes swim-across {
     0% {
-        transform: scale(0.8);
-        opacity: 1;
+        left: -60px;
+        transform: scaleX(1);
+    }
+    49.9% {
+        left: calc(100% + 60px);
+        transform: scaleX(1);
+    }
+    50% {
+        left: calc(100% + 60px);
+        transform: scaleX(-1);
+    }
+    99.9% {
+        left: -60px;
+        transform: scaleX(-1);
     }
     100% {
-        transform: scale(2);
-        opacity: 0;
+        left: -60px;
+        transform: scaleX(1);
     }
 }
 
-@keyframes water-shine {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+.game-logo {
+    margin-bottom: 40px;
+    animation: float 6s ease-in-out infinite;
+    width: 100%;
+    max-width: 320px;
 }
 
-@keyframes wave-animation {
-    0% { background-position-x: 0%; }
-    100% { background-position-x: 100%; }
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+
+.start-button-container {
+    position: relative;
+    margin-top: 30px;
+    perspective: 1000px;
+}
+
+.start-button {
+    background: linear-gradient(to bottom, #4caf50, #2e7d32);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+    transition: all 0.3s;
+    z-index: 2;
+    position: relative;
+    overflow: hidden;
+}
+
+.start-button:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    background: linear-gradient(to bottom, #66bb6a, #388e3c);
+}
+
+.start-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+
+.button-ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    transition: all 0.6s ease-out;
+}
+
+.start-button:hover + .button-ripple {
+    width: 150%;
+    height: 150%;
+    opacity: 0.3;
+}
+
+.game-version {
+    position: absolute;
+    bottom: -80px;
+    right: 20px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #4fc3f7, #0288d1);
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+.loading-screen.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 80%;
+    max-width: 500px;
+}
+
+.loading-boat {
+    margin-bottom: 30px;
+    animation: loading-boat 3s ease-in-out infinite;
+}
+
+@keyframes loading-boat {
+    0% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(5px) rotate(1deg); }
+    50% { transform: translateY(0) rotate(0deg); }
+    75% { transform: translateY(5px) rotate(-1deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+}
+
+.loading-text {
+    color: white;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.loading-bar-container {
+    width: 100%;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.loading-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(to right, #4caf50, #8bc34a);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.loading-tips {
+    color: white;
+    text-align: center;
+    font-size: 0.9rem;
+    font-style: italic;
+    max-width: 400px;
+    animation: fade-in-out 3s ease-in-out infinite;
+}
+
+@keyframes fade-in-out {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
+}
+
+.hidden-app {
+    display: none;
+}
+
+.visible-app {
+    display: block;
+}
+
+.ad-container, .ad-notice {
+    display: none;
 }
 
 .fishing-spot-selector {
@@ -912,6 +1095,125 @@ footer {
     padding: 20px 0;
 }
 
+.fishing-splash {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    z-index: 2;
+    animation: ripple 1s ease-out forwards;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+@keyframes water-shine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes wave-animation {
+    0% { background-position-x: 0%; }
+    100% { background-position-x: 100%; }
+}
+
+.offline-modal {
+    max-width: 450px;
+    animation: modal-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.offline-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    text-align: center;
+}
+
+.offline-icon {
+    margin-bottom: 15px;
+    background: linear-gradient(135deg, #4caf50, #009688);
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.offline-icon i {
+    font-size: 40px;
+    color: white;
+}
+
+.offline-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
+    width: 100%;
+}
+
+.offline-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    font-size: 1.1rem;
+}
+
+.offline-stat i {
+    font-size: 24px;
+    color: #1976d2;
+}
+
+.offline-message {
+    margin-bottom: 20px;
+    color: #757575;
+    font-style: italic;
+}
+
+.collect-button {
+    padding: 12px 24px;
+    background: linear-gradient(to bottom, #4caf50, #388e3c);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-top: 10px;
+}
+
+.collect-button:hover {
+    background: linear-gradient(to bottom, #66bb6a, #43a047);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+}
+
+@keyframes modal-pop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
 @media (max-width: 900px) {
     .game-container {
         grid-template-columns: 1fr;
@@ -966,11 +1268,6 @@ footer {
         padding: 15px;
     }
     
-    .ad-container {
-        min-height: 100px;
-        padding: 10px;
-    }
-    
     .fishing-spot-selector {
         margin-bottom: 15px;
     }
@@ -1017,4 +1314,35 @@ footer {
     .inventory-item button {
         width: 100%;
     }
+}
+
+footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 15px;
+    background: linear-gradient(135deg, #1976d2, #0d47a1);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+}
+
+.reset-button {
+    background: #d32f2f;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.reset-button:hover {
+    background: #b71c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
