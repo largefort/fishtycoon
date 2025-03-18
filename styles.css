@@ -784,39 +784,6 @@ footer {
     margin-right: 3px;
 }
 
-.encyclopedia-pagination {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 20px;
-    flex-wrap: wrap;
-}
-
-.page-button {
-    padding: 5px 12px;
-    background-color: #e0e0e0;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.page-button:hover {
-    background-color: #bbdefb;
-}
-
-.page-button.active {
-    background-color: #1976d2;
-    color: white;
-}
-
-.fish-description {
-    font-size: 0.9rem;
-    color: #666;
-    margin: 10px 0;
-    line-height: 1.4;
-}
-
 .modal-overlay {
     position: fixed;
     top: 0;
