@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
         locationRenderer.getLocationCanvas(id);
     });
     
+    // Create random bubbles for title screen
+    createTitleBubbles();
+    
     // Array of tips to show during loading
     const loadingTips = [
         "Higher quality fishing rods catch more fish per cast!",
@@ -76,6 +79,37 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, loadingDuration / 100);
     });
+    
+    // Function to create random bubbles for title screen
+    function createTitleBubbles() {
+        const bubbleContainer = document.querySelector('.title-bubbles');
+        
+        // Create additional random bubbles
+        for (let i = 0; i < 20; i++) {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            
+            // Random position, size and animation properties
+            const size = Math.random() * 15 + 5;
+            const left = Math.random() * 100;
+            const delay = Math.random() * 15;
+            const duration = Math.random() * 5 + 7;
+            const opacity = Math.random() * 0.5 + 0.2;
+            const rotate = Math.random() * 40 - 20;
+            
+            bubble.style.cssText = `
+                left: ${left}%;
+                width: ${size}px;
+                height: ${size}px;
+                --duration: ${duration}s;
+                --opacity: ${opacity};
+                --rotate: ${rotate}deg;
+                animation-delay: ${delay}s;
+            `;
+            
+            bubbleContainer.appendChild(bubble);
+        }
+    }
 });
 
 createApp({
