@@ -742,7 +742,11 @@ createApp({
                 
                 // Reset encyclopedia - completely reinitialize it
                 encyclopediaUnlocked.value = false;
-                initializeEncyclopedia();
+                Object.keys(encyclopedia.value).forEach(fishId => {
+                    encyclopedia.value[fishId].discovered = false;
+                    encyclopedia.value[fishId].caught = 0;
+                    encyclopedia.value[fishId].record = { weight: 0, length: 0 };
+                });
                 selectedFish.value = null;
                 
                 // Reset auto fishing
@@ -1048,7 +1052,46 @@ createApp({
             resetProgress,
             showOfflineModal,
             offlineEarnings,
-            closeOfflineModal
+            closeOfflineModal,
+            template: `
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="stat-icon">💸</span>
+                            <span>Money</span>
+                        </div>
+                        <div class="stat-value">{{ formatNumber(money) }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="stat-icon">🎣</span>
+                            <span>Fish Caught</span>
+                        </div>
+                        <div class="stat-value">{{ totalFishCaught }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="stat-icon">🚣</span>
+                            <span>Boat Position</span>
+                        </div>
+                        <div class="stat-value">{{ boatPosition }}%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="stat-icon">🎣</span>
+                            <span>Fishing Power</span>
+                        </div>
+                        <div class="stat-value">{{ fishingPower }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="stat-icon">⏱️</span>
+                            <span>Auto-Fishing</span>
+                        </div>
+                        <div class="stat-value">{{ autoFishingRate.toFixed(2) }}/second</div>
+                    </div>
+                </div>
+            `
         };
     }
 }).mount('#app');

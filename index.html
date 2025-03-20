@@ -19,22 +19,30 @@
     <div id="title-screen" class="title-screen active">
         <div class="title-content">
             <div class="game-logo">
-                <svg width="400" height="180" viewBox="0 0 400 180">
+                <svg width="500" height="200" viewBox="0 0 500 200">
                     <defs>
                         <linearGradient id="titleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                             <stop offset="0%" stop-color="#64B5F6" />
                             <stop offset="100%" stop-color="#1565C0" />
                         </linearGradient>
                         <filter id="titleShadow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+                            <feDropShadow dx="3" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
+                        </filter>
+                        <filter id="textOutline">
+                            <feMorphology operator="dilate" radius="1" in="SourceGraphic" result="thickened"/>
+                            <feFlood flood-color="#1565C0" flood-opacity="0.3" result="outlineColor"/>
+                            <feComposite in="outlineColor" in2="thickened" operator="in" result="outline"/>
+                            <feMerge>
+                                <feMergeNode in="outline"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
                         </filter>
                     </defs>
-                    <text x="200" y="90" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="36" fill="url(#titleGradient)" filter="url(#titleShadow)">Idle Fishing Tycoon</text>
-                    <path d="M 70,110 C 60,105 50,115 45,105 C 40,115 30,105 20,110" stroke="#FFF" stroke-width="2" fill="none" stroke-linecap="round" />
-                    <path d="M 330,110 C 340,105 350,115 355,105 C 360,115 370,105 380,110" stroke="#FFF" stroke-width="2" fill="none" stroke-linecap="round" />
-                    <path d="M 170,115 Q 200,140 230,115" stroke="#64B5F6" stroke-width="3" fill="none" />
-                    <path d="M 175,120 L 180,110 L 185,120" stroke="#64B5F6" stroke-width="2" fill="none" />
-                    <path d="M 215,120 L 220,110 L 225,120" stroke="#64B5F6" stroke-width="2" fill="none" />
+                    <text x="250" y="100" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="48" fill="url(#titleGradient)" filter="url(#titleShadow) url(#textOutline)">Idle Fishing Tycoon</text>
+                    <!-- Wave and fishing decorations -->
+                    <path d="M 100,120 Q 200,140 300,120 Q 400,100 500,120" stroke="#4FC3F7" stroke-width="3" fill="none" />
+                    <path d="M 120,130 L 130,110 L 140,130" stroke="#4FC3F7" stroke-width="2" fill="none" />
+                    <path d="M 350,125 L 360,105 L 370,125" stroke="#4FC3F7" stroke-width="2" fill="none" />
                 </svg>
             </div>
             <div class="fish-animations">
