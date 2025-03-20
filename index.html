@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Idle Fishing Tycoon</title>
+    <title>Trawler's Empire</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -19,18 +19,29 @@
     <div id="title-screen" class="title-screen active">
         <div class="title-content">
             <div class="game-logo">
-                <svg width="500" height="200" viewBox="0 0 500 200">
+                <svg width="600" height="240" viewBox="0 0 600 240">
                     <defs>
                         <linearGradient id="titleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                             <stop offset="0%" stop-color="#64B5F6" />
                             <stop offset="100%" stop-color="#1565C0" />
                         </linearGradient>
+                        <linearGradient id="glowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#E3F2FD" />
+                            <stop offset="100%" stop-color="#90CAF9" />
+                        </linearGradient>
                         <filter id="titleShadow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feDropShadow dx="3" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
+                            <feDropShadow dx="3" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/>
+                        </filter>
+                        <filter id="titleGlow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+                            <feComposite in="blur" in2="SourceGraphic" operator="out" result="outerGlow"/>
+                            <feFlood flood-color="#4FC3F7" flood-opacity="0.8" result="glowColor"/>
+                            <feComposite in="glowColor" in2="outerGlow" operator="in" result="coloredGlow"/>
+                            <feComposite in="SourceGraphic" in2="coloredGlow" operator="over"/>
                         </filter>
                         <filter id="textOutline">
-                            <feMorphology operator="dilate" radius="1" in="SourceGraphic" result="thickened"/>
-                            <feFlood flood-color="#1565C0" flood-opacity="0.3" result="outlineColor"/>
+                            <feMorphology operator="dilate" radius="1.5" in="SourceGraphic" result="thickened"/>
+                            <feFlood flood-color="#0D47A1" flood-opacity="0.5" result="outlineColor"/>
                             <feComposite in="outlineColor" in2="thickened" operator="in" result="outline"/>
                             <feMerge>
                                 <feMergeNode in="outline"/>
@@ -38,11 +49,26 @@
                             </feMerge>
                         </filter>
                     </defs>
-                    <text x="250" y="100" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="48" fill="url(#titleGradient)" filter="url(#titleShadow) url(#textOutline)">Idle Fishing Tycoon</text>
-                    <!-- Wave and fishing decorations -->
-                    <path d="M 100,120 Q 200,140 300,120 Q 400,100 500,120" stroke="#4FC3F7" stroke-width="3" fill="none" />
-                    <path d="M 120,130 L 130,110 L 140,130" stroke="#4FC3F7" stroke-width="2" fill="none" />
-                    <path d="M 350,125 L 360,105 L 370,125" stroke="#4FC3F7" stroke-width="2" fill="none" />
+                    <!-- Decorative sea background -->
+                    <rect x="0" y="180" width="600" height="60" fill="#01579B" opacity="0.6"/>
+                    <path d="M0,180 Q150,160 300,180 Q450,200 600,180 L600,240 L0,240 Z" fill="#0277BD" opacity="0.8"/>
+                    
+                    <!-- Main title text with enhanced effects -->
+                    <text x="300" y="120" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="58" fill="url(#titleGradient)" filter="url(#titleShadow) url(#textOutline)">Trawler's Empire</text>
+                    
+                    <!-- Decorative subtitle -->
+                    <text x="300" y="155" text-anchor="middle" font-family="Arial" font-style="italic" font-size="22" fill="#E1F5FE" filter="url(#titleShadow)">Master the Seas, Build your Legacy</text>
+                    
+                    <!-- Decorative elements -->
+                    <path d="M 100,170 Q 200,190 300,170 Q 400,150 500,170" stroke="#4FC3F7" stroke-width="3" stroke-linecap="round" fill="none">
+                        <animate attributeName="d" values="M 100,170 Q 200,190 300,170 Q 400,150 500,170; M 100,175 Q 200,195 300,165 Q 400,145 500,165; M 100,170 Q 200,190 300,170 Q 400,150 500,170" dur="8s" repeatCount="indefinite" />
+                    </path>
+                    <path d="M 130,180 L 140,160 L 150,180" stroke="#4FC3F7" stroke-width="2" fill="none">
+                        <animate attributeName="d" values="M 130,180 L 140,160 L 150,180; M 135,180 L 142,155 L 155,180; M 130,180 L 140,160 L 150,180" dur="6s" repeatCount="indefinite" />
+                    </path>
+                    <path d="M 400,175 L 410,155 L 420,175" stroke="#4FC3F7" stroke-width="2" fill="none">
+                        <animate attributeName="d" values="M 400,175 L 410,155 L 420,175; M 405,175 L 412,150 L 425,175; M 400,175 L 410,155 L 420,175" dur="7s" repeatCount="indefinite" />
+                    </path>
                 </svg>
             </div>
             <div class="fish-animations">
@@ -100,7 +126,7 @@
                 <div class="bubble" style="left: 85%; width: 16px; height: 16px; --duration: 7s; --opacity: 0.7; --rotate: -20deg;"></div>
             </div>
             <div class="start-button-container">
-                <button id="start-game" class="start-button">Start Fishing</button>
+                <button id="start-game" class="start-button">Set Sail</button>
                 <div class="button-ripple"></div>
             </div>
             <div class="game-version">v1.0.0</div>
@@ -111,13 +137,28 @@
     <div id="loading-screen" class="loading-screen">
         <div class="loading-content">
             <div class="loading-boat">
-                <svg width="100" height="50" viewBox="0 0 100 50">
-                    <path d="M 20,30 Q 50,10 80,30 L 75,40 L 25,40 Z" fill="#8B5A2B" />
-                    <rect x="45" y="10" width="5" height="20" fill="#6B4226" />
-                    <path d="M 45,10 L 60,5 L 60,30 Z" fill="#FFF" />
+                <svg width="120" height="60" viewBox="0 0 120 60">
+                    <!-- Enhanced boat illustration -->
+                    <defs>
+                        <linearGradient id="boatGradientLoading" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#A5744E" />
+                            <stop offset="60%" stop-color="#8B5A2B" />
+                            <stop offset="100%" stop-color="#6B4226" />
+                        </linearGradient>
+                        <filter id="boatShadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/>
+                        </filter>
+                    </defs>
+                    <path d="M 20,35 Q 60,10 100,35 L 95,45 L 25,45 Z" fill="url(#boatGradientLoading)" filter="url(#boatShadow)" />
+                    <rect x="55" y="15" width="5" height="20" fill="#6B4226" />
+                    <path d="M 55,15 L 70,10 L 70,35 Z" fill="#FFF">
+                        <animate attributeName="d" values="M 55,15 L 70,10 L 70,35 Z; M 55,15 L 72,12 L 70,36 Z; M 55,15 L 70,10 L 70,35 Z" dur="6s" repeatCount="indefinite" />
+                    </path>
+                    <path d="M 57,35 C 60,25 65,25 68,35" stroke="#FFF" stroke-width="0.5" fill="none" opacity="0.7" />
+                    <path d="M 80,30 C 83,25 87,25 90,30" stroke="#FFF" stroke-width="0.5" fill="none" opacity="0.7" />
                 </svg>
             </div>
-            <div class="loading-text">Loading your fishing adventure...</div>
+            <div class="loading-text">Preparing your voyage...</div>
             <div class="loading-bar-container">
                 <div class="loading-bar"></div>
             </div>
@@ -163,7 +204,7 @@
         </div>
         
         <header>
-            <h1>Idle Fishing Tycoon</h1>
+            <h1>Trawler's Empire <span class="prestige-badge" v-if="prestigeLevel > 0">P{{ prestigeLevel }}</span></h1>
             <div class="currency">
                 <span class="currency-icon">💰</span>
                 <span>${{ formatNumber(money) }}</span>
@@ -185,6 +226,10 @@
                 </div>
                 <div class="tab" :class="{ active: activeTab === 'upgrades' }" @click="changeTab('upgrades')">
                     <i class="material-icons">upgrade</i> Upgrades
+                </div>
+                <div class="tab" :class="{ active: activeTab === 'prestige' }" @click="changeTab('prestige')">
+                    <i class="material-icons">stars</i> Prestige
+                    <span class="prestige-badge" v-if="prestigeLevel > 0">{{ prestigeLevel }}</span>
                 </div>
             </div>
             
@@ -520,6 +565,201 @@
                 </div>
             </div>
             
+            <!-- Prestige Button - Fixed Position -->
+            <button class="prestige-button" @click="openPrestigeModal" v-if="CONFIG && CONFIG.prestigeSystem && CONFIG.prestigeSystem.enabled">
+                <i class="material-icons">stars</i>
+            </button>
+            
+            <!-- Prestige Modal -->
+            <div class="modal-overlay" v-if="showPrestigeModal">
+                <div class="modal-content prestige-modal">
+                    <div class="prestige-header">
+                        <h2>Fisherman's Prestige</h2>
+                        <button class="modal-close" @click="closePrestigeModal">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="prestige-level">
+                            <div class="prestige-icon">{{ prestigeLevel }}</div>
+                            <h3>{{ currentRank }} <span class="prestige-badge" v-if="prestigeLevel > 0">P{{ prestigeLevel }}</span></h3>
+                        </div>
+                        
+                        <h3>Prestige Benefits</h3>
+                        <div class="prestige-benefits">
+                            <div class="benefit-item">
+                                <div class="benefit-icon"><i class="material-icons">catching_pokemon</i></div>
+                                <div class="benefit-info">
+                                    <div><strong>Fishing Power Bonus:</strong></div>
+                                    <div>+{{ prestigeBonuses.fishingPower }} fish per cast (+{{ CONFIG.prestigeSystem.benefits.fishingPowerMultiplier * 100 }}% per level)</div>
+                                </div>
+                            </div>
+                            <div class="benefit-item">
+                                <div class="benefit-icon"><i class="material-icons">schedule</i></div>
+                                <div class="benefit-info">
+                                    <div><strong>Auto-Fishing Bonus:</strong></div>
+                                    <div>+{{ prestigeBonuses.autoFishing }} fish per second (+{{ CONFIG.prestigeSystem.benefits.autoFishingBonus }} per level)</div>
+                                </div>
+                            </div>
+                            <div class="benefit-item">
+                                <div class="benefit-icon"><i class="material-icons">trending_up</i></div>
+                                <div class="benefit-info">
+                                    <div><strong>Fish Value Bonus:</strong></div>
+                                    <div>+{{ prestigeBonuses.fishValue * 100 }}% fish value (+{{ CONFIG.prestigeSystem.benefits.fishValueMultiplier * 100 }}% per level)</div>
+                                </div>
+                            </div>
+                            <div class="benefit-item">
+                                <div class="benefit-icon"><i class="material-icons">monetization_on</i></div>
+                                <div class="benefit-info">
+                                    <div><strong>Starting Money:</strong></div>
+                                    <div>${{ prestigeBonuses.startingMoney }} (×{{ CONFIG.prestigeSystem.benefits.startingMoneyMultiplier }} per level)</div>
+                                </div>
+                            </div>
+                            
+                            <div class="medal-row">
+                                <div class="prestige-medal medal-bronze" title="Bronze: Prestige 1">1</div>
+                                <div class="prestige-medal medal-silver" title="Silver: Prestige 5" :style="{ opacity: prestigeLevel >= 5 ? 1 : 0.3 }">5</div>
+                                <div class="prestige-medal medal-gold" title="Gold: Prestige 10" :style="{ opacity: prestigeLevel >= 10 ? 1 : 0.3 }">10</div>
+                                <div class="prestige-medal medal-platinum" title="Platinum: Prestige 15" :style="{ opacity: prestigeLevel >= 15 ? 1 : 0.3 }">15</div>
+                                <div class="prestige-medal medal-diamond" title="Diamond: Prestige 20" :style="{ opacity: prestigeLevel >= 20 ? 1 : 0.3 }">20</div>
+                            </div>
+                        </div>
+                        
+                        <h3>Prestige Requirements</h3>
+                        <div class="prestige-requirements">
+                            <div class="requirement-item">
+                                <div>Money: ${{ formatNumber(money) }} / ${{ formatNumber(CONFIG.prestigeSystem.requirements.minMoney) }}</div>
+                                <div class="requirement-status" :class="money >= CONFIG.prestigeSystem.requirements.minMoney ? 'requirement-complete' : 'requirement-incomplete'">
+                                    {{ money >= CONFIG.prestigeSystem.requirements.minMoney ? 'Complete' : 'Incomplete' }}
+                                </div>
+                            </div>
+                            <div class="requirement-item">
+                                <div>Fish Caught: {{ formatNumber(totalFishCaught) }} / {{ formatNumber(CONFIG.prestigeSystem.requirements.minFishCaught) }}</div>
+                                <div class="requirement-status" :class="totalFishCaught >= CONFIG.prestigeSystem.requirements.minFishCaught ? 'requirement-complete' : 'requirement-incomplete'">
+                                    {{ totalFishCaught >= CONFIG.prestigeSystem.requirements.minFishCaught ? 'Complete' : 'Incomplete' }}
+                                </div>
+                            </div>
+                            <div class="requirement-item">
+                                <div>Locations Unlocked: {{ fishingLocations.filter(loc => loc.unlocked).length }} / {{ CONFIG.prestigeSystem.requirements.minLocationsUnlocked }}</div>
+                                <div class="requirement-status" :class="fishingLocations.filter(loc => loc.unlocked).length >= CONFIG.prestigeSystem.requirements.minLocationsUnlocked ? 'requirement-complete' : 'requirement-incomplete'">
+                                    {{ fishingLocations.filter(loc => loc.unlocked).length >= CONFIG.prestigeSystem.requirements.minLocationsUnlocked ? 'Complete' : 'Incomplete' }}
+                                </div>
+                            </div>
+                            <div class="requirement-item">
+                                <div>Encyclopedia: {{ discoveryPercentage }}% / {{ CONFIG.prestigeSystem.requirements.minEncyclopediaCompletion }}%</div>
+                                <div class="requirement-status" :class="discoveryPercentage >= CONFIG.prestigeSystem.requirements.minEncyclopediaCompletion ? 'requirement-complete' : 'requirement-incomplete'">
+                                    {{ discoveryPercentage >= CONFIG.prestigeSystem.requirements.minEncyclopediaCompletion ? 'Complete' : 'Incomplete' }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="prestige-confirm" @click="performPrestige" :disabled="!canPrestige">
+                            {{ canPrestige ? 'Prestige Now!' : 'Complete Requirements First' }}
+                        </button>
+                        
+                        <p class="prestige-info" style="color: #757575; font-style: italic; margin-top: 15px; text-align: center;">
+                            Prestige will reset your progress but give you permanent benefits for future runs.
+                            <br>You will keep your Fish Encyclopedia discoveries.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- New Prestige Tab Content -->
+            <div v-if="activeTab === 'prestige'" class="upgrades prestige-tab-content">
+                <h2>Prestige System</h2>
+                
+                <div class="prestige-level">
+                    <div class="prestige-icon">{{ prestigeLevel }}</div>
+                    <h3>{{ currentRank }} <span class="prestige-badge" v-if="prestigeLevel > 0">P{{ prestigeLevel }}</span></h3>
+                </div>
+                
+                <h3>Current Prestige Benefits</h3>
+                <div class="prestige-benefits">
+                    <div class="benefit-item">
+                        <div class="benefit-icon"><i class="material-icons">catching_pokemon</i></div>
+                        <div class="benefit-info">
+                            <div><strong>Fishing Power Bonus:</strong></div>
+                            <div>+{{ prestigeBonuses.fishingPower }} fish per cast (+{{ CONFIG.prestigeSystem.benefits.fishingPowerMultiplier * 100 }}% per level)</div>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon"><i class="material-icons">schedule</i></div>
+                        <div class="benefit-info">
+                            <div><strong>Auto-Fishing Bonus:</strong></div>
+                            <div>+{{ prestigeBonuses.autoFishing }} fish per second (+{{ CONFIG.prestigeSystem.benefits.autoFishingBonus }} per level)</div>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon"><i class="material-icons">trending_up</i></div>
+                        <div class="benefit-info">
+                            <div><strong>Fish Value Bonus:</strong></div>
+                            <div>+{{ prestigeBonuses.fishValue * 100 }}% fish value (+{{ CONFIG.prestigeSystem.benefits.fishValueMultiplier * 100 }}% per level)</div>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon"><i class="material-icons">monetization_on</i></div>
+                        <div class="benefit-info">
+                            <div><strong>Starting Money:</strong></div>
+                            <div>${{ prestigeBonuses.startingMoney }} (×{{ CONFIG.prestigeSystem.benefits.startingMoneyMultiplier }} per level)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="medal-row">
+                        <div class="prestige-medal medal-bronze" title="Bronze: Prestige 1">1</div>
+                        <div class="prestige-medal medal-silver" title="Silver: Prestige 5" :style="{ opacity: prestigeLevel >= 5 ? 1 : 0.3 }">5</div>
+                        <div class="prestige-medal medal-gold" title="Gold: Prestige 10" :style="{ opacity: prestigeLevel >= 10 ? 1 : 0.3 }">10</div>
+                        <div class="prestige-medal medal-platinum" title="Platinum: Prestige 15" :style="{ opacity: prestigeLevel >= 15 ? 1 : 0.3 }">15</div>
+                        <div class="prestige-medal medal-diamond" title="Diamond: Prestige 20" :style="{ opacity: prestigeLevel >= 20 ? 1 : 0.3 }">20</div>
+                    </div>
+                </div>
+                
+                <h3>Prestige Requirements</h3>
+                <div class="prestige-requirements">
+                    <div class="requirement-item">
+                        <div>Money: ${{ formatNumber(money) }} / ${{ formatNumber(CONFIG.prestigeSystem.requirements.minMoney) }}</div>
+                        <div class="requirement-status" :class="money >= CONFIG.prestigeSystem.requirements.minMoney ? 'requirement-complete' : 'requirement-incomplete'">
+                            {{ money >= CONFIG.prestigeSystem.requirements.minMoney ? 'Complete' : 'Incomplete' }}
+                        </div>
+                    </div>
+                    <div class="requirement-item">
+                        <div>Fish Caught: {{ formatNumber(totalFishCaught) }} / {{ formatNumber(CONFIG.prestigeSystem.requirements.minFishCaught) }}</div>
+                        <div class="requirement-status" :class="totalFishCaught >= CONFIG.prestigeSystem.requirements.minFishCaught ? 'requirement-complete' : 'requirement-incomplete'">
+                            {{ totalFishCaught >= CONFIG.prestigeSystem.requirements.minFishCaught ? 'Complete' : 'Incomplete' }}
+                        </div>
+                    </div>
+                    <div class="requirement-item">
+                        <div>Locations Unlocked: {{ fishingLocations.filter(loc => loc.unlocked).length }} / {{ CONFIG.prestigeSystem.requirements.minLocationsUnlocked }}</div>
+                        <div class="requirement-status" :class="fishingLocations.filter(loc => loc.unlocked).length >= CONFIG.prestigeSystem.requirements.minLocationsUnlocked ? 'requirement-complete' : 'requirement-incomplete'">
+                            {{ fishingLocations.filter(loc => loc.unlocked).length >= CONFIG.prestigeSystem.requirements.minLocationsUnlocked ? 'Complete' : 'Incomplete' }}
+                        </div>
+                    </div>
+                    <div class="requirement-item">
+                        <div>Encyclopedia: {{ discoveryPercentage }}% / {{ CONFIG.prestigeSystem.requirements.minEncyclopediaCompletion }}%</div>
+                        <div class="requirement-status" :class="discoveryPercentage >= CONFIG.prestigeSystem.requirements.minEncyclopediaCompletion ? 'requirement-complete' : 'requirement-incomplete'">
+                            {{ discoveryPercentage >= CONFIG.prestigeSystem.requirements.minEncyclopediaCompletion ? 'Complete' : 'Incomplete' }}
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="prestige-info" style="color: #757575; font-style: italic; margin: 15px 0; text-align: center;">
+                    Prestige will reset your progress but give you permanent benefits for future runs.
+                    <br>You will keep your Fish Encyclopedia discoveries.
+                </p>
+                
+                <button class="prestige-confirm" @click="performPrestige" :disabled="!canPrestige" style="display: block; margin: 20px auto;">
+                    {{ canPrestige ? 'Prestige Now!' : 'Complete Requirements First' }}
+                </button>
+                
+                <h3>Prestige Ranks</h3>
+                <div class="prestige-ranks">
+                    <div class="rank-item" v-for="rank in CONFIG.prestigeSystem.ranks" :key="rank.level"
+                         :class="{ 'active-rank': prestigeLevel >= rank.level && rank.level === getCurrentHighestRankLevel() }">
+                        <div class="rank-level">{{ rank.level }}</div>
+                        <div class="rank-title">{{ rank.title }}</div>
+                        <div class="rank-status">{{ prestigeLevel >= rank.level ? 'Unlocked' : 'Locked' }}</div>
+                    </div>
+                </div>
+            </div>
+            
             <div v-if="activeTab === 'upgrades'" class="upgrades">
                 <h2>Upgrades</h2>
                 <div class="upgrade-list">
@@ -545,8 +785,8 @@
         </main>
         
         <footer>
-            <p>Idle Fishing Tycoon - Reel in riches and build your fishing empire!</p>
-            <button class="reset-button" @click="resetProgress">Reset Progress</button>
+            <p>Trawler's Empire - {{ currentRank }} - Reel in riches and build your fishing empire!</p>
+            <button class="reset-button" @click="resetProgress">Reset All Progress</button>
         </footer>
     </div>
     

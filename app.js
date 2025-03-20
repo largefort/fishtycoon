@@ -26,7 +26,12 @@ document.addEventListener('DOMContentLoaded', () => {
         "Different locations have different types of fish to catch.",
         "Upgrade your boat to access deeper waters and rare fish.",
         "Auto-fishers work even when you're away from the game.",
-        "Check the Fish Encyclopedia to track your collection progress."
+        "Check the Fish Encyclopedia to track your collection progress.",
+        "Some legendary fish only appear in specific locations.",
+        "Boat upgrades can improve your fishing efficiency.",
+        "Keep an eye on your stats to track your progress!",
+        "Build your trawler empire one fish at a time!",
+        "Ocean fishing provides the most valuable catches."
     ];
     
     // Start button click handler
@@ -85,12 +90,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const bubbleContainer = document.querySelector('.title-bubbles');
         
         // Create additional random bubbles
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 30; i++) {
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
             
             // Random position, size and animation properties
-            const size = Math.random() * 15 + 5;
+            const size = Math.random() * 20 + 5;
             const left = Math.random() * 100;
             const delay = Math.random() * 15;
             const duration = Math.random() * 5 + 7;
@@ -472,7 +477,9 @@ createApp({
             if (inventory.value[type]) {
                 const fishType = currentFishTypes.value.find(fish => fish.name === type);
                 if (fishType) {
-                    const value = fishType.value * inventory.value[type];
+                    // Apply prestige bonus to fish value
+                    const valueMultiplier = 1 + prestigeBonuses.fishValue;
+                    const value = Math.floor(fishType.value * inventory.value[type] * valueMultiplier);
                     money.value += value;
                     inventory.value[type] = 0;
                     
@@ -648,12 +655,17 @@ createApp({
 
         // Format large numbers
         function formatNumber(num) {
+            // Fix floating point precision issues for auto-fishing rate
+            if (typeof num === 'number' && String(num).includes('.')) {
+                num = parseFloat(num.toFixed(2));
+            }
+            
             if (num >= 1000000) {
                 return (num / 1000000).toFixed(1) + 'M';
             } else if (num >= 1000) {
                 return (num / 1000).toFixed(1) + 'K';
             } else {
-                return num.toFixed(0);
+                return String(num);
             }
         }
 
@@ -682,6 +694,10 @@ createApp({
         // Change active tab
         function changeTab(tabName) {
             activeTab.value = tabName;
+            
+            // Close modals when changing tabs
+            if (tabName !== 'encyclopedia') showEncyclopedia.value = false;
+            if (tabName !== 'boat') showBoatCustomization.value = false;
         }
 
         // Close modals
@@ -709,7 +725,11 @@ createApp({
 
         // Reset progress function with enhanced encyclopedia reset
         function resetProgress() {
-            if (confirm('Are you sure you want to reset all progress? This cannot be undone!')) {
+            if (confirm('Are you sure you want to reset ALL progress? This includes your Prestige Level and cannot be undone!')) {
+                // Reset prestige level and bonuses
+                prestigeLevel.value = 0;
+                calculatePrestigeBonuses();
+                
                 // Clear localStorage
                 localStorage.removeItem('fishingTycoonSave');
                 
@@ -747,6 +767,10 @@ createApp({
                     encyclopedia.value[fishId].caught = 0;
                     encyclopedia.value[fishId].record = { weight: 0, length: 0 };
                 });
+                
+                // Ensure the encyclopedia is fully reset
+                encyclopedia.value = { ...encyclopedia.value };
+                
                 selectedFish.value = null;
                 
                 // Reset auto fishing
@@ -763,7 +787,7 @@ createApp({
                 showEncyclopedia.value = false;
                 showBoatCustomization.value = false;
                 
-                alert('Game progress has been reset!');
+                alert('Game progress has been completely reset!');
             }
         }
 
@@ -864,6 +888,149 @@ createApp({
         // Close offline modal
         function closeOfflineModal() {
             showOfflineModal.value = false;
+        }
+
+        // Add prestige system state
+        const prestigeLevel = ref(0);
+        const showPrestigeModal = ref(false);
+        const currentRank = ref("Novice Fisherman");
+        const prestigeBonuses = reactive({
+            fishingPower: 0,
+            autoFishing: 0,
+            fishValue: 0,
+            startingMoney: 0
+        });
+
+        // Get current rank title based on prestige level
+        function getCurrentRank() {
+            const ranks = CONFIG.prestigeSystem.ranks;
+            let highestMatch = ranks[0];
+            
+            for (const rank of ranks) {
+                if (prestigeLevel.value >= rank.level && rank.level >= highestMatch.level) {
+                    highestMatch = rank;
+                }
+            }
+            
+            return highestMatch.title;
+        }
+        
+        // Check if player can prestige
+        const canPrestige = computed(() => {
+            const reqs = CONFIG.prestigeSystem.requirements;
+            return money.value >= reqs.minMoney &&
+                  totalFishCaught.value >= reqs.minFishCaught &&
+                  fishingLocations.value.filter(loc => loc.unlocked).length >= reqs.minLocationsUnlocked &&
+                  discoveryPercentage.value >= reqs.minEncyclopediaCompletion;
+        });
+        
+        // Open prestige modal
+        function openPrestigeModal() {
+            showPrestigeModal.value = true;
+        }
+        
+        // Close prestige modal
+        function closePrestigeModal() {
+            showPrestigeModal.value = false;
+        }
+        
+        // Calculate prestige bonuses
+        function calculatePrestigeBonuses() {
+            const benefits = CONFIG.prestigeSystem.benefits;
+            const level = prestigeLevel.value;
+            
+            prestigeBonuses.fishingPower = +(level * benefits.fishingPowerMultiplier).toFixed(2);
+            prestigeBonuses.autoFishing = +(level * benefits.autoFishingBonus).toFixed(2);
+            prestigeBonuses.fishValue = +(level * benefits.fishValueMultiplier).toFixed(2);
+            prestigeBonuses.startingMoney = Math.floor(benefits.startingMoneyBase * Math.pow(benefits.startingMoneyMultiplier, level));
+            
+            // Update current rank
+            currentRank.value = getCurrentRank();
+        }
+        
+        // Perform prestige
+        function performPrestige() {
+            if (!canPrestige.value) return;
+            
+            if (confirm('Are you sure you want to prestige? You will lose most of your progress but gain permanent bonuses!')) {
+                // Increment prestige level
+                prestigeLevel.value++;
+                
+                // Calculate new bonuses
+                calculatePrestigeBonuses();
+                
+                // Reset game state but keep prestige data
+                resetForPrestige();
+                
+                // Close modal
+                closePrestigeModal();
+                
+                // Show confirmation
+                alert(`Congratulations! You are now Prestige Level ${prestigeLevel.value} (${currentRank.value})`);
+            }
+        }
+        
+        // Reset progress for prestige but keep certain data
+        function resetForPrestige() {
+            // Calculate starting money based on prestige level
+            const startingMoney = prestigeBonuses.startingMoney;
+            
+            // Reset basic stats
+            money.value = startingMoney;
+            inventory.value = {};
+            totalFishCaught.value = 0;
+            
+            // Set fishing power with prestige bonus
+            fishingPower.value = 1 + prestigeBonuses.fishingPower;
+            
+            // Set auto fishing with prestige bonus
+            autoFishingRate.value = prestigeBonuses.autoFishing;
+            
+            // Reset upgrade levels except for prestige-derived bonuses
+            upgrades.value.forEach(upgrade => {
+                upgrade.level = upgrade.id === 'rod' || upgrade.id === 'boat' || upgrade.id === 'lure' ? 1 : 0;
+                upgrade.cost = upgrade.getCost(upgrade.level);
+            });
+            
+            // Reset locations but keep encyclopedia knowledge
+            fishingLocations.value.forEach((loc, index) => {
+                loc.unlocked = index === 0; // Only the first location is unlocked
+            });
+            activeLocationId.value = 'pond'; // Reset to first location
+            
+            // Reset boat customization
+            Object.keys(boatCustomization.value).forEach(partType => {
+                boatCustomization.value[partType].current = 'basic';
+                boatCustomization.value[partType].options.forEach(option => {
+                    option.unlocked = option.id === 'basic';
+                });
+            });
+            
+            // Keep encyclopedia discovery data - this is maintained through prestiges
+            
+            // Reset auto fishing setup if applicable
+            setupAutoFishing();
+            
+            // Update water background to match initial location
+            document.querySelector('.water').style.background = fishingLocations.value[0].background;
+            
+            // Close any open modals
+            showEncyclopedia.value = false;
+            showBoatCustomization.value = false;
+        }
+
+        // Get highest rank level user has achieved
+        function getCurrentHighestRankLevel() {
+            const ranks = CONFIG.prestigeSystem.ranks;
+            let highestMatch = 0;
+            
+            for (const rank of ranks) {
+                if (prestigeLevel.value >= rank.level && rank.level > highestMatch) {
+                    highestMatch = rank.level;
+                }
+            }
+            
+            return highestMatch;
         }
 
         // Initialize on mount
@@ -968,18 +1135,28 @@ createApp({
                         encyclopediaUnlocked.value = data.encyclopediaUnlocked || false;
                     }
                     
+                    // Load prestige data
+                    if (data.prestigeLevel !== undefined) {
+                        prestigeLevel.value = data.prestigeLevel;
+                        calculatePrestigeBonuses();
+                    }
+                    
                     // Setup auto fishing based on loaded data
                     setupAutoFishing();
                 } catch (error) {
                     console.error('Error loading save data:', error);
                 }
             }
+            
+            // Calculate prestige bonuses on initial load
+            calculatePrestigeBonuses();
         });
 
-        // Update save function to include last online time
+        // Update save function to include prestige data
         watch([
             money, inventory, totalFishCaught, fishingPower, autoFishingRate, upgrades,
-            fishingLocations, activeLocationId, boatCustomization, encyclopedia, encyclopediaUnlocked
+            fishingLocations, activeLocationId, boatCustomization, encyclopedia, encyclopediaUnlocked,
+            prestigeLevel
         ], () => {
             const saveData = {
                 money: money.value,
@@ -996,7 +1173,8 @@ createApp({
                 boatCustomization: boatCustomization.value,
                 encyclopedia: encyclopedia.value,
                 encyclopediaUnlocked: encyclopediaUnlocked.value,
-                lastOnlineTime: Date.now() // Save current timestamp
+                lastOnlineTime: Date.now(), // Save current timestamp
+                prestigeLevel: prestigeLevel.value // Save prestige level
             };
             localStorage.setItem('fishingTycoonSave', JSON.stringify(saveData));
         }, { deep: true });
@@ -1053,6 +1231,16 @@ createApp({
             showOfflineModal,
             offlineEarnings,
             closeOfflineModal,
+            prestigeLevel,
+            currentRank,
+            prestigeBonuses,
+            showPrestigeModal,
+            canPrestige,
+            openPrestigeModal,
+            closePrestigeModal,
+            performPrestige,
+            getCurrentHighestRankLevel,
+            CONFIG,
             template: `
                 <div class="stats">
                     <div class="stat-item">
