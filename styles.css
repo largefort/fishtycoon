@@ -1488,91 +1488,31 @@ h2 {
     color: #2e7d32;
 }
 
-@media (max-width: 600px) {
-    #app {
-        padding: 10px;
-    }
-    
-    header {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    h1 {
-        font-size: 1.5rem;
-    }
-    
-    .currency {
-        font-size: 1.4rem;
-    }
-    
-    .water {
-        height: 300px;
-    }
-    
-    .upgrade-list {
-        grid-template-columns: 1fr;
-    }
-    
-    .controls button {
-        padding: 15px 25px;
-        width: 100%;
-        max-width: 250px;
-    }
-    
-    .upgrade-item {
-        padding: 15px;
-    }
-    
-    .stats, .inventory {
-        padding: 15px;
-    }
-    
-    .fishing-spot-selector {
-        margin-bottom: 15px;
-    }
-    
-    .location-card {
-        min-width: 160px;
-        padding: 10px;
-    }
-    
-    .location-image {
-        height: 80px;
-    }
-    
-    .boat-parts {
-        grid-template-columns: 1fr;
-    }
-    
-    .encyclopedia-content {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 15px;
-    }
-    
-    .fish-details {
-        padding: 8px;
-    }
-    
-    .modal-content {
-        width: 95%;
-    }
+.steam-widget-container {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    margin: 30px auto;
+    text-align: center;
+    max-width: 646px;
 }
 
-@media (max-width: 400px) {
-    .stat-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-    
-    .inventory-item {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .inventory-item button {
+.steam-widget-container h2 {
+    margin-bottom: 15px;
+    color: #1565c0;
+}
+
+.steam-widget-container iframe {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 680px) {
+    .steam-widget-container iframe {
         width: 100%;
+        height: 180px;
     }
 }
 
@@ -1835,4 +1775,92 @@ footer {
 .medal-diamond {
     background: linear-gradient(135deg, #e1f5fe, #4fc3f7);
     box-shadow: 0 0 10px #29b6f6;
+}
+
+@media (max-width: 600px) {
+    #app {
+        padding: 10px;
+    }
+    
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .currency {
+        font-size: 1.4rem;
+    }
+    
+    .water {
+        height: 300px;
+    }
+    
+    .upgrade-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .controls button {
+        padding: 15px 25px;
+        width: 100%;
+        max-width: 250px;
+    }
+    
+    .upgrade-item {
+        padding: 15px;
+    }
+    
+    .stats, .inventory {
+        padding: 15px;
+    }
+    
+    .fishing-spot-selector {
+        margin-bottom: 15px;
+    }
+    
+    .location-card {
+        min-width: 160px;
+        padding: 10px;
+    }
+    
+    .location-image {
+        height: 80px;
+    }
+    
+    .boat-parts {
+        grid-template-columns: 1fr;
+    }
+    
+    .encyclopedia-content {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+    }
+    
+    .fish-details {
+        padding: 8px;
+    }
+    
+    .modal-content {
+        width: 95%;
+    }
+}
+
+@media (max-width: 400px) {
+    .stat-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .inventory-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .inventory-item button {
+        width: 100%;
+    }
 }
