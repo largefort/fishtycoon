@@ -23,6 +23,18 @@ export const CONFIG = {
     maxHours: 12, // Maximum hours of offline progress to calculate
     efficiencyRate: 0.8 // Offline auto-fishing efficiency (80% of normal rate)
   },
+  // Inbox system settings
+  inboxSystem: {
+    enabled: true,
+    defaultSender: "Jafet Egill",
+    senderEmail: "jafet@trawlersempire.com",
+    welcomeMessageSent: false,
+    allowPlayerCompose: true,
+    autoResponseDelay: {
+      min: 2000,  // Minimum response time in ms
+      max: 5000   // Maximum response time in ms
+    }
+  },
   // Prestige system settings
   prestigeSystem: {
     enabled: true,
@@ -51,7 +63,14 @@ export const CONFIG = {
       { level: 7, title: "Legendary Angler" },
       { level: 10, title: "Fishing Tycoon" },
       { level: 15, title: "Maritime Emperor" },
-      { level: 20, title: "Trawler God" }
+      { level: 20, title: "Trawler God" },
+      { level: 25, title: "Ocean Sovereign" },
+      { level: 30, title: "Leviathan Hunter" },
+      { level: 40, title: "Poseidon's Heir" },
+      { level: 50, title: "Neptune's Chosen" },
+      { level: 60, title: "Deep Sea Monarch" },
+      { level: 75, title: "Abyssal Conqueror" },
+      { level: 100, title: "Eternal Fisherman" }
     ]
   }
 };

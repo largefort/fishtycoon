@@ -154,9 +154,229 @@ createApp({
             timeAway: 0
         });
 
-        // Initialize location renderer
-        const locationRenderer = window.locationRenderer || new LocationRenderer();
+        // Add inbox system state
+        const showInbox = ref(false);
+        const emails = ref([]);
+        const unreadEmailCount = ref(0);
+        const showComposeEmail = ref(false);
+        const newEmailContent = ref('');
+        const newEmailSubject = ref('');
+
+        // Initialize inbox with welcome message
+        function initializeInbox() {
+            if (CONFIG.inboxSystem.enabled && !CONFIG.inboxSystem.welcomeMessageSent) {
+                // Add welcome message
+                addEmail({
+                    id: 'welcome-1',
+                    subject: 'Welcome to Trawler\'s Empire!',
+                    sender: CONFIG.inboxSystem.defaultSender,
+                    senderEmail: CONFIG.inboxSystem.senderEmail,
+                    date: new Date().toLocaleDateString(),
+                    content: `
+                        <p>Ahoy, Captain!</p>
+                        <p>Welcome to Trawler's Empire, where you'll build your fishing legacy from humble beginnings to a vast maritime empire.</p>
+                        <p>Here are some tips to get started:</p>
+                        <ul>
+                            <li>Click "Cast Line" to start fishing</li>
+                            <li>Upgrade your equipment to catch more fish</li>
+                            <li>Unlock new locations for rare fish species</li>
+                            <li>Auto-fishing works even when you're away!</li>
+                        </ul>
+                        <p>Keep an eye on this inbox for future updates and patch notes.</p>
+                        <p>Happy fishing!</p>
+                        <p>- Jafet Egill<br>Game Developer</p>
+                    `,
+                    read: false
+                });
+
+                // Add gameplay tips email
+                addEmail({
+                    id: 'tips-1',
+                    subject: 'Essential Fishing Tips',
+                    sender: CONFIG.inboxSystem.defaultSender,
+                    senderEmail: CONFIG.inboxSystem.senderEmail,
+                    date: new Date().toLocaleDateString(),
+                    content: `
+                        <p>Greetings, Fisher!</p>
+                        <p>I wanted to share some expert tips to help you on your journey:</p>
+                        <ul>
+                            <li><strong>Prestige System:</strong> Don't forget to prestige when you meet the requirements. Each level provides permanent bonuses!</li>
+                            <li><strong>Encyclopedia Completion:</strong> Try to discover all fish species to unlock special achievements.</li>
+                            <li><strong>Auto-Fishing:</strong> Invest in auto-fishers early for passive income, especially useful for offline progress.</li>
+                            <li><strong>Location Strategy:</strong> Each location has unique fish. Ocean fishing is the most profitable but requires significant investment.</li>
+                        </ul>
+                        <p>May your nets always be full!</p>
+                        <p>- Jafet Egill<br>Game Developer</p>
+                    `,
+                    read: false
+                });
+
+                // Add update announcement email
+                addEmail({
+                    id: 'update-1',
+                    subject: 'New Features: Encyclopedia & Prestige System',
+                    sender: CONFIG.inboxSystem.defaultSender,
+                    senderEmail: CONFIG.inboxSystem.senderEmail,
+                    date: new Date().toLocaleDateString(),
+                    content: `
+                        <p>Hello Captain,</p>
+                        <p>We've just deployed some exciting new features to Trawler's Empire!</p>
+                        <h3>What's New:</h3>
+                        <ul>
+                            <li><strong>Enhanced Fish Encyclopedia:</strong> We've completely redesigned the fish encyclopedia for better visualization and organization.</li>
+                            <li><strong>Expanded Prestige System:</strong> New prestige ranks have been added, with titles up to "Eternal Fisherman" at level 100!</li>
+                            <li><strong>Inbox System:</strong> You're reading this on our new in-game email system where you'll receive updates and tips.</li>
+                        </ul>
+                        <p>We're constantly improving Trawler's Empire and would love to hear your feedback.</p>
+                        <p>Tight lines!</p>
+                        <p>- Jafet Egill<br>Game Developer</p>
+                    `,
+                    read: false
+                });
+                
+                // Set welcome message as sent
+                CONFIG.inboxSystem.welcomeMessageSent = true;
+            }
+        }
         
+        // Add email to inbox
+        function addEmail(email) {
+            emails.value.unshift(email);
+            if (!email.read) {
+                unreadEmailCount.value++;
+            }
+        }
+        
+        // Mark email as read
+        function markEmailAsRead(emailId) {
+            const email = emails.value.find(e => e.id === emailId);
+            if (email && !email.read) {
+                email.read = true;
+                unreadEmailCount.value = Math.max(0, unreadEmailCount.value - 1);
+            }
+        }
+        
+        // Toggle inbox view
+        function toggleInbox() {
+            showInbox.value = !showInbox.value;
+            showComposeEmail.value = false;
+        }
+        
+        // Toggle compose email view
+        function toggleComposeEmail() {
+            showComposeEmail.value = !showComposeEmail.value;
+            if (showComposeEmail.value) {
+                newEmailSubject.value = '';
+                newEmailContent.value = '';
+            }
+        }
+        
+        // Send email to developer and get auto-response
+        function sendEmail() {
+            if (!newEmailSubject.value.trim() || !newEmailContent.value.trim()) {
+                alert('Please provide both a subject and message content.');
+                return;
+            }
+            
+            // Generate a unique ID using timestamp + random number
+            const playerEmailId = `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            
+            // Add player's email to the sent folder
+            addEmail({
+                id: playerEmailId,
+                subject: `[Sent] ${newEmailSubject.value}`,
+                sender: 'You',
+                senderEmail: 'player@trawlersempire.com',
+                date: new Date().toLocaleDateString(),
+                content: `
+                    <p>${newEmailContent.value.replace(/\n/g, '<br>')}</p>
+                    <p><i>Message sent to ${CONFIG.inboxSystem.defaultSender}</i></p>
+                `,
+                read: true,
+                isSent: true
+            });
+            
+            // Generate auto-response based on content analysis
+            setTimeout(() => {
+                // AI will analyze the content and generate appropriate response
+                const response = generateAutoResponse(newEmailSubject.value, newEmailContent.value);
+                
+                // Add developer's response
+                addEmail({
+                    id: `response-${playerEmailId}`,
+                    subject: `RE: ${newEmailSubject.value}`,
+                    sender: CONFIG.inboxSystem.defaultSender,
+                    senderEmail: CONFIG.inboxSystem.senderEmail,
+                    date: new Date().toLocaleDateString(),
+                    content: response,
+                    read: false,
+                    isResponse: true
+                });
+            }, 2000 + Math.random() * 3000); // Random delay between 2-5 seconds for realism
+            
+            // Close compose window and show confirmation
+            toggleComposeEmail();
+            alert('Your message has been sent!');
+        }
+        
+        // Generate auto response based on email content
+        function generateAutoResponse(subject, content) {
+            const lowerSubject = subject.toLowerCase();
+            const lowerContent = content.toLowerCase();
+            
+            // Check for different types of inquiries and generate appropriate responses
+            if (lowerContent.includes('bug') || lowerContent.includes('issue') || lowerContent.includes('problem')) {
+                return `
+                    <p>Hello Captain,</p>
+                    <p>Thanks for reporting this issue. I'm constantly working to improve Trawler's Empire and your feedback is invaluable.</p>
+                    <p>Could you provide more details about the specific conditions when this bug occurs? Screenshots are also helpful if possible.</p>
+                    <p>I'll investigate this issue and address it in an upcoming update.</p>
+                    <p>Happy fishing!</p>
+                    <p>- Jafet Egill<br>Game Developer</p>
+                `;
+            } else if (lowerContent.includes('suggest') || lowerContent.includes('idea') || lowerContent.includes('feature')) {
+                return `
+                    <p>Hello Captain,</p>
+                    <p>Thank you for your suggestion! I'm always looking for great ideas to make Trawler's Empire even better.</p>
+                    <p>I've added your idea to my development roadmap for consideration. Player feedback is what drives the game's evolution.</p>
+                    <p>Keep the great ideas coming, and thanks for being part of the Trawler's Empire community!</p>
+                    <p>- Jafet Egill<br>Game Developer</p>
+                `;
+            } else if (lowerContent.includes('thank') || lowerContent.includes('love') || lowerContent.includes('great')) {
+                return `
+                    <p>Hello Captain,</p>
+                    <p>Thank you for your kind words! It's messages like yours that make game development rewarding.</p>
+                    <p>I'm so glad you're enjoying Trawler's Empire. I put a lot of heart into creating a game that's both fun and engaging.</p>
+                    <p>Stay tuned for more updates and features coming soon!</p>
+                    <p>- Jafet Egill<br>Game Developer</p>
+                `;
+            } else if (lowerContent.includes('how') || lowerContent.includes('help') || lowerContent.includes('guide')) {
+                return `
+                    <p>Hello Captain,</p>
+                    <p>Thanks for reaching out! I'm happy to help you with any questions about Trawler's Empire.</p>
+                    <p>Here are some quick tips:</p>
+                    <ul>
+                        <li>Upgrade your fishing rod early to catch more fish per cast</li>
+                        <li>Auto-fishers work even when you're away from the game</li>
+                        <li>Different locations have different types of fish with varying rarities</li>
+                        <li>The Encyclopedia tracks all fish you've discovered</li>
+                        <li>Prestige when you meet the requirements for permanent bonuses</li>
+                    </ul>
+                    <p>Let me know if you have any specific questions!</p>
+                    <p>- Jafet Egill<br>Game Developer</p>
+                `;
+            } else {
+                return `
+                    <p>Hello Captain,</p>
+                    <p>Thank you for your message! I appreciate you taking the time to write to me.</p>
+                    <p>I'm constantly working on improving Trawler's Empire based on player feedback and ideas.</p>
+                    <p>Keep an eye on your inbox for announcements about upcoming features and updates!</p>
+                    <p>Happy fishing!</p>
+                    <p>- Jafet Egill<br>Game Developer</p>
+                `;
+            }
+        }
+
         // Fishing locations
         const fishingLocations = ref([
             {
@@ -169,10 +389,14 @@ createApp({
                 image: 'pond',
                 canvasImage: null, // Will be filled by canvas
                 fishTypes: [
-                    { id: 'common1', name: "Common Fish", chance: 0.6, value: 1, color: "#6495ED", minDepth: 20, maxDepth: 50 },
-                    { id: 'rare1', name: "Rare Fish", chance: 0.3, value: 5, color: "#FFD700", minDepth: 40, maxDepth: 70 },
-                    { id: 'epic1', name: "Epic Fish", chance: 0.09, value: 25, color: "#9932CC", minDepth: 60, maxDepth: 90 },
-                    { id: 'legendary1', name: "Legendary Fish", chance: 0.01, value: 150, color: "#FF4500", minDepth: 80, maxDepth: 100 }
+                    { id: 'common1', name: "Common Fish", chance: 0.4, value: 1, color: "#6495ED", minDepth: 20, maxDepth: 50 },
+                    { id: 'common2', name: "Bluegill", chance: 0.2, value: 2, color: "#4682B4", minDepth: 15, maxDepth: 40 },
+                    { id: 'rare1', name: "Rare Fish", chance: 0.15, value: 5, color: "#FFD700", minDepth: 40, maxDepth: 70 },
+                    { id: 'rare2', name: "Smallmouth Bass", chance: 0.15, value: 8, color: "#DAA520", minDepth: 30, maxDepth: 60 },
+                    { id: 'epic1', name: "Epic Fish", chance: 0.06, value: 25, color: "#9932CC", minDepth: 60, maxDepth: 90 },
+                    { id: 'epic2', name: "Albino Catfish", chance: 0.03, value: 35, color: "#F5F5F5", minDepth: 50, maxDepth: 80 },
+                    { id: 'legendary1', name: "Legendary Fish", chance: 0.006, value: 150, color: "#FF4500", minDepth: 80, maxDepth: 100 },
+                    { id: 'legendary2', name: "Crowned Koi", chance: 0.004, value: 200, color: "#FFA07A", minDepth: 70, maxDepth: 100 }
                 ]
             },
             {
@@ -185,10 +409,14 @@ createApp({
                 image: 'lake',
                 canvasImage: null, // Will be filled by canvas
                 fishTypes: [
-                    { id: 'common2', name: "Lake Trout", chance: 0.5, value: 3, color: "#20B2AA", minDepth: 20, maxDepth: 50 },
-                    { id: 'rare2', name: "Mountain Bass", chance: 0.3, value: 8, color: "#DAA520", minDepth: 40, maxDepth: 70 },
-                    { id: 'epic2', name: "Rainbow Trout", chance: 0.15, value: 40, color: "#BA55D3", minDepth: 60, maxDepth: 90 },
-                    { id: 'legendary2', name: "Golden Carp", chance: 0.05, value: 200, color: "#FFA500", minDepth: 80, maxDepth: 100 }
+                    { id: 'common3', name: "Lake Trout", chance: 0.3, value: 3, color: "#20B2AA", minDepth: 20, maxDepth: 50 },
+                    { id: 'common4', name: "Yellow Perch", chance: 0.2, value: 4, color: "#FFEB3B", minDepth: 15, maxDepth: 40 },
+                    { id: 'rare3', name: "Mountain Bass", chance: 0.15, value: 8, color: "#DAA520", minDepth: 40, maxDepth: 70 },
+                    { id: 'rare4', name: "Brook Trout", chance: 0.15, value: 12, color: "#8BC34A", minDepth: 35, maxDepth: 65 },
+                    { id: 'epic3', name: "Rainbow Trout", chance: 0.1, value: 40, color: "#BA55D3", minDepth: 60, maxDepth: 90 },
+                    { id: 'epic4', name: "Arctic Char", chance: 0.05, value: 50, color: "#E91E63", minDepth: 55, maxDepth: 85 },
+                    { id: 'legendary3', name: "Golden Carp", chance: 0.03, value: 200, color: "#FFA500", minDepth: 80, maxDepth: 100 },
+                    { id: 'legendary4', name: "Ancient Sturgeon", chance: 0.02, value: 250, color: "#607D8B", minDepth: 75, maxDepth: 100 }
                 ]
             },
             {
@@ -201,10 +429,14 @@ createApp({
                 image: 'river',
                 canvasImage: null, // Will be filled by canvas
                 fishTypes: [
-                    { id: 'common3', name: "River Perch", chance: 0.45, value: 5, color: "#4682B4", minDepth: 20, maxDepth: 50 },
-                    { id: 'rare3', name: "Silver Salmon", chance: 0.35, value: 15, color: "#C0C0C0", minDepth: 40, maxDepth: 70 },
-                    { id: 'epic3', name: "River Sturgeon", chance: 0.15, value: 60, color: "#9370DB", minDepth: 60, maxDepth: 90 },
-                    { id: 'legendary3', name: "Royal Salmon", chance: 0.05, value: 250, color: "#CD5C5C", minDepth: 80, maxDepth: 100 }
+                    { id: 'common5', name: "River Perch", chance: 0.25, value: 5, color: "#4682B4", minDepth: 20, maxDepth: 50 },
+                    { id: 'common6', name: "Brown Bullhead", chance: 0.2, value: 7, color: "#795548", minDepth: 15, maxDepth: 45 },
+                    { id: 'rare5', name: "Silver Salmon", chance: 0.15, value: 15, color: "#C0C0C0", minDepth: 40, maxDepth: 70 },
+                    { id: 'rare6', name: "Cutthroat Trout", chance: 0.15, value: 18, color: "#FF5722", minDepth: 35, maxDepth: 65 },
+                    { id: 'epic5', name: "River Sturgeon", chance: 0.1, value: 60, color: "#9370DB", minDepth: 60, maxDepth: 90 },
+                    { id: 'epic6', name: "Striped Bass", chance: 0.05, value: 80, color: "#455A64", minDepth: 55, maxDepth: 85 },
+                    { id: 'legendary5', name: "Royal Salmon", chance: 0.05, value: 250, color: "#CD5C5C", minDepth: 80, maxDepth: 100 },
+                    { id: 'legendary6', name: "River Dragon", chance: 0.05, value: 350, color: "#00BCD4", minDepth: 75, maxDepth: 100 }
                 ]
             },
             {
@@ -217,16 +449,25 @@ createApp({
                 image: 'ocean',
                 canvasImage: null, // Will be filled by canvas
                 fishTypes: [
-                    { id: 'common4', name: "Mackerel", chance: 0.4, value: 10, color: "#4169E1", minDepth: 20, maxDepth: 50 },
-                    { id: 'rare4', name: "Tuna", chance: 0.3, value: 30, color: "#1E90FF", minDepth: 40, maxDepth: 70 },
-                    { id: 'epic4', name: "Swordfish", chance: 0.2, value: 100, color: "#8A2BE2", minDepth: 60, maxDepth: 90 },
-                    { id: 'legendary4', name: "Blue Marlin", chance: 0.1, value: 500, color: "#0000CD", minDepth: 80, maxDepth: 100 }
+                    { id: 'common7', name: "Mackerel", chance: 0.2, value: 10, color: "#4169E1", minDepth: 20, maxDepth: 50 },
+                    { id: 'common8', name: "Herring", chance: 0.2, value: 12, color: "#90CAF9", minDepth: 15, maxDepth: 45 },
+                    { id: 'rare7', name: "Tuna", chance: 0.15, value: 30, color: "#1E90FF", minDepth: 40, maxDepth: 70 },
+                    { id: 'rare8', name: "Mahi-Mahi", chance: 0.15, value: 35, color: "#FFC107", minDepth: 35, maxDepth: 65 },
+                    { id: 'epic7', name: "Swordfish", chance: 0.1, value: 100, color: "#8A2BE2", minDepth: 60, maxDepth: 90 },
+                    { id: 'epic8', name: "Hammerhead Shark", chance: 0.05, value: 150, color: "#757575", minDepth: 55, maxDepth: 85 },
+                    { id: 'legendary7', name: "Blue Marlin", chance: 0.05, value: 500, color: "#0000CD", minDepth: 80, maxDepth: 100 },
+                    { id: 'legendary8', name: "Colossal Squid", chance: 0.05, value: 800, color: "#D32F2F", minDepth: 75, maxDepth: 100 },
+                    { id: 'mythic1', name: "Kraken Spawn", chance: 0.03, value: 1200, color: "#311B92", minDepth: 90, maxDepth: 100 },
+                    { id: 'mythic2', name: "Abyssal Leviathan", chance: 0.02, value: 2000, color: "#880E4F", minDepth: 95, maxDepth: 100 }
                 ]
             }
         ]);
 
-        // Load canvas images
+        // Initialize location renderer
         function loadLocationCanvases() {
+            const locationRenderer = window.locationRenderer;
+            if (!locationRenderer) return;
+            
             fishingLocations.value.forEach(location => {
                 location.canvasImage = locationRenderer.getLocationCanvas(location.id);
             });
@@ -298,9 +539,10 @@ createApp({
 
         // Helper function to get rarity name
         function getRarityName(chance) {
+            if (chance <= 0.02) return 'Mythic';
             if (chance <= 0.05) return 'Legendary';
-            if (chance <= 0.15) return 'Epic';
-            if (chance <= 0.35) return 'Rare';
+            if (chance <= 0.1) return 'Epic';
+            if (chance <= 0.2) return 'Rare';
             return 'Common';
         }
 
@@ -399,6 +641,10 @@ createApp({
                 
                 // Show splash effect when line hits water
                 showSplash.value = true;
+                
+                // Create water particles for splash effect
+                createWaterParticles();
+                
                 setTimeout(() => {
                     showSplash.value = false;
                 }, 1000);
@@ -416,6 +662,44 @@ createApp({
                     }, 500);
                 }, 1000);
             }, 500);
+        }
+        
+        // Create water particles for splash effect
+        function createWaterParticles() {
+            const splashContainer = document.querySelector('.water');
+            const boatElement = document.querySelector('.boat');
+            if (!splashContainer || !boatElement) return;
+            
+            const boatRect = boatElement.getBoundingClientRect();
+            const splashX = boatRect.left + boatRect.width / 2;
+            const splashY = boatRect.top + lineLength.value;
+            
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'water-particle';
+                
+                // Random position around splash point
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 20 + 5;
+                const x = splashX + Math.cos(angle) * distance;
+                const y = splashY + Math.sin(angle) * distance;
+                
+                // Set particle styles
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                particle.style.opacity = Math.random() * 0.5 + 0.5;
+                
+                // Add animation
+                particle.style.animation = `particle-fly ${Math.random() * 1 + 0.5}s ease-out forwards`;
+                
+                // Append particle
+                splashContainer.appendChild(particle);
+                
+                // Remove particle after animation
+                setTimeout(() => {
+                    particle.remove();
+                }, 1500);
+            }
         }
 
         // Modified catch fish function to use location-specific fish
@@ -639,6 +923,11 @@ createApp({
                     fish.verticalDirection *= -1;
                 }
                 
+                // Occasionally change speed for more natural movement
+                if (Math.random() < 0.01) {
+                    fish.speed = Math.random() * 1.5 + 0.8;
+                }
+                
                 // Update depth with boundaries
                 fish.depth += fish.verticalDirection;
                 if (fish.depth < 15) fish.depth = 15;
@@ -762,14 +1051,15 @@ createApp({
                 
                 // Reset encyclopedia - completely reinitialize it
                 encyclopediaUnlocked.value = false;
-                Object.keys(encyclopedia.value).forEach(fishId => {
-                    encyclopedia.value[fishId].discovered = false;
-                    encyclopedia.value[fishId].caught = 0;
-                    encyclopedia.value[fishId].record = { weight: 0, length: 0 };
-                });
+                initializeEncyclopedia(); // Reinitialize the encyclopedia from scratch
                 
-                // Ensure the encyclopedia is fully reset
-                encyclopedia.value = { ...encyclopedia.value };
+                // Keep the emails but reset welcome message flag
+                CONFIG.inboxSystem.welcomeMessageSent = false;
+                emails.value = [];
+                unreadEmailCount.value = 0;
+                
+                // Reinitialize the inbox
+                initializeInbox();
                 
                 selectedFish.value = null;
                 
@@ -786,6 +1076,7 @@ createApp({
                 // Close any open modals
                 showEncyclopedia.value = false;
                 showBoatCustomization.value = false;
+                showInbox.value = false;
                 
                 alert('Game progress has been completely reset!');
             }
@@ -1035,8 +1326,11 @@ createApp({
 
         // Initialize on mount
         onMounted(() => {
-            // Load all canvas images
-            loadLocationCanvases();
+            // Wait for location renderer to be initialized by title screen code
+            setTimeout(() => {
+                // Load all canvas images
+                loadLocationCanvases();
+            }, 100);
             
             // Generate initial fish
             for (let i = 0; i < 8; i++) {
@@ -1062,6 +1356,9 @@ createApp({
             
             // Initialize encyclopedia
             initializeEncyclopedia();
+            
+            // Initialize inbox
+            initializeInbox();
         });
 
         // Load game data
@@ -1135,6 +1432,12 @@ createApp({
                         encyclopediaUnlocked.value = data.encyclopediaUnlocked || false;
                     }
                     
+                    // Load inbox data
+                    if (data.emails) {
+                        emails.value = data.emails;
+                        unreadEmailCount.value = emails.value.filter(e => !e.read).length;
+                    }
+                    
                     // Load prestige data
                     if (data.prestigeLevel !== undefined) {
                         prestigeLevel.value = data.prestigeLevel;
@@ -1146,17 +1449,20 @@ createApp({
                 } catch (error) {
                     console.error('Error loading save data:', error);
                 }
+            } else {
+                // First time playing - initialize inbox
+                initializeInbox();
             }
             
             // Calculate prestige bonuses on initial load
             calculatePrestigeBonuses();
         });
 
-        // Update save function to include prestige data
+        // Update save function to include inbox data
         watch([
             money, inventory, totalFishCaught, fishingPower, autoFishingRate, upgrades,
             fishingLocations, activeLocationId, boatCustomization, encyclopedia, encyclopediaUnlocked,
-            prestigeLevel
+            prestigeLevel, emails
         ], () => {
             const saveData = {
                 money: money.value,
@@ -1174,7 +1480,8 @@ createApp({
                 encyclopedia: encyclopedia.value,
                 encyclopediaUnlocked: encyclopediaUnlocked.value,
                 lastOnlineTime: Date.now(), // Save current timestamp
-                prestigeLevel: prestigeLevel.value // Save prestige level
+                prestigeLevel: prestigeLevel.value, // Save prestige level
+                emails: emails.value
             };
             localStorage.setItem('fishingTycoonSave', JSON.stringify(saveData));
         }, { deep: true });
@@ -1241,6 +1548,16 @@ createApp({
             performPrestige,
             getCurrentHighestRankLevel,
             CONFIG,
+            emails,
+            unreadEmailCount,
+            showInbox,
+            toggleInbox,
+            markEmailAsRead,
+            showComposeEmail,
+            newEmailContent,
+            newEmailSubject,
+            toggleComposeEmail,
+            sendEmail,
             template: `
                 <div class="stats">
                     <div class="stat-item">
