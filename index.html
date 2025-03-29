@@ -48,34 +48,19 @@
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
-                        <filter id="enhancedGlow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
-                            <feFlood flood-color="#4FC3F7" flood-opacity="0.7" result="glowColor" />
-                            <feComposite in="glowColor" in2="blur" operator="in" result="softGlow" />
-                            <feMerge>
-                                <feMergeNode in="softGlow" />
-                                <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                        </filter>
-                        <pattern id="waterPattern" patternUnits="userSpaceOnUse" width="100" height="30" patternTransform="rotate(0)">
-                            <path d="M 0,15 Q 25,5 50,15 Q 75,25 100,15" stroke="#4FC3F7" stroke-width="2" fill="none" opacity="0.3">
-                                <animate attributeName="d" values="M 0,15 Q 25,5 50,15 Q 75,25 100,15; M 0,15 Q 25,25 50,15 Q 75,5 100,15; M 0,15 Q 25,5 50,15 Q 75,25 100,15" dur="10s" repeatCount="indefinite" />
-                            </path>
-                        </pattern>
                     </defs>
-                    <!-- Enhanced sea background with pattern -->
-                    <rect x="0" y="160" width="600" height="80" fill="url(#waterPattern)" opacity="0.8"/>
+                    <!-- Decorative sea background -->
                     <rect x="0" y="180" width="600" height="60" fill="#01579B" opacity="0.6"/>
                     <path d="M0,180 Q150,160 300,180 Q450,200 600,180 L600,240 L0,240 Z" fill="#0277BD" opacity="0.8"/>
                     
                     <!-- Main title text with enhanced effects -->
-                    <text x="300" y="120" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="58" fill="url(#titleGradient)" filter="url(#titleShadow) url(#textOutline) url(#enhancedGlow)">Trawler's Empire</text>
+                    <text x="300" y="120" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="58" fill="url(#titleGradient)" filter="url(#titleShadow) url(#textOutline)">Trawler's Empire</text>
                     
-                    <!-- Decorative subtitle with enhanced effects -->
+                    <!-- Decorative subtitle -->
                     <text x="300" y="155" text-anchor="middle" font-family="Arial" font-style="italic" font-size="22" fill="#E1F5FE" filter="url(#titleShadow)">Master the Seas, Build your Legacy</text>
                     
-                    <!-- Enhanced decorative elements -->
-                    <path d="M 100,170 Q 200,190 300,170 Q 400,150 500,170" stroke="#4FC3F7" stroke-width="3" stroke-linecap="round" fill="none" filter="url(#enhancedGlow)" opacity="0.7">
+                    <!-- Decorative elements -->
+                    <path d="M 100,170 Q 200,190 300,170 Q 400,150 500,170" stroke="#4FC3F7" stroke-width="3" stroke-linecap="round" fill="none">
                         <animate attributeName="d" values="M 100,170 Q 200,190 300,170 Q 400,150 500,170; M 100,175 Q 200,195 300,165 Q 400,145 500,165; M 100,170 Q 200,190 300,170 Q 400,150 500,170" dur="8s" repeatCount="indefinite" />
                     </path>
                     <path d="M 130,180 L 140,160 L 150,180" stroke="#4FC3F7" stroke-width="2" fill="none">
@@ -84,20 +69,6 @@
                     <path d="M 400,175 L 410,155 L 420,175" stroke="#4FC3F7" stroke-width="2" fill="none">
                         <animate attributeName="d" values="M 400,175 L 410,155 L 420,175; M 405,175 L 412,150 L 425,175; M 400,175 L 410,155 L 420,175" dur="7s" repeatCount="indefinite" />
                     </path>
-                    
-                    <!-- Add floating bubbles -->
-                    <circle cx="150" cy="140" r="5" fill="white" opacity="0.3">
-                        <animate attributeName="cy" values="140;120;140" dur="4s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" values="0.3;0.6;0.3" dur="4s" repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="450" cy="130" r="3" fill="white" opacity="0.2">
-                        <animate attributeName="cy" values="130;115;130" dur="5s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" values="0.2;0.5;0.2" dur="5s" repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="350" cy="160" r="4" fill="white" opacity="0.25">
-                        <animate attributeName="cy" values="160;145;160" dur="6s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" values="0.25;0.5;0.25" dur="6s" repeatCount="indefinite" />
-                    </circle>
                 </svg>
             </div>
             <div class="fish-animations">
@@ -174,45 +145,17 @@
                             <stop offset="60%" stop-color="#8B5A2B" />
                             <stop offset="100%" stop-color="#6B4226" />
                         </linearGradient>
-                        <linearGradient id="sailGradientLoading" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stop-color="#FFFFFF" />
-                            <stop offset="100%" stop-color="#E0E0E0" />
-                        </linearGradient>
                         <filter id="boatShadow" x="-20%" y="-20%" width="140%" height="140%">
                             <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/>
                         </filter>
-                        <filter id="waterReflection">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="blur"/>
-                            <feOffset in="blur" dx="0" dy="1" result="offsetBlur"/>
-                            <feComponentTransfer in="offsetBlur" result="brightened">
-                                <feFuncA type="linear" slope="0.4"/>
-                            </feComponentTransfer>
-                            <feMerge>
-                                <feMergeNode in="brightened"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
                     </defs>
-                    <!-- Enhanced boat hull -->
                     <path d="M 20,35 Q 60,10 100,35 L 95,45 L 25,45 Z" fill="url(#boatGradientLoading)" filter="url(#boatShadow)" />
-                    <!-- Enhanced mast -->
                     <rect x="55" y="15" width="5" height="20" fill="#6B4226" />
-                    <!-- Dynamic sail with animation -->
-                    <path d="M 55,15 L 70,10 L 70,35 Z" fill="url(#sailGradientLoading)" filter="url(#waterReflection)">
+                    <path d="M 55,15 L 70,10 L 70,35 Z" fill="#FFF">
                         <animate attributeName="d" values="M 55,15 L 70,10 L 70,35 Z; M 55,15 L 72,12 L 70,36 Z; M 55,15 L 70,10 L 70,35 Z" dur="6s" repeatCount="indefinite" />
                     </path>
-                    <!-- Enhanced details -->
                     <path d="M 57,35 C 60,25 65,25 68,35" stroke="#FFF" stroke-width="0.5" fill="none" opacity="0.7" />
                     <path d="M 80,30 C 83,25 87,25 90,30" stroke="#FFF" stroke-width="0.5" fill="none" opacity="0.7" />
-                    <path d="M 30,40 C 35,38 40,38 45,40" stroke="#FFF" stroke-width="0.5" fill="none" opacity="0.5" />
-                    <path d="M 75,40 C 80,38 85,38 90,40" stroke="#FFF" stroke-width="0.5" fill="none" opacity="0.5" />
-                    <!-- Water ripples -->
-                    <path d="M 10,50 Q 20,48 30,50 Q 40,52 50,50" stroke="#FFF" stroke-width="0.5" fill="none" opacity="0.3">
-                        <animate attributeName="d" values="M 10,50 Q 20,48 30,50 Q 40,52 50,50; M 10,50 Q 20,52 30,50 Q 40,48 50,50; M 10,50 Q 20,48 30,50 Q 40,52 50,50" dur="4s" repeatCount="indefinite" />
-                    </path>
-                    <path d="M 70,50 Q 80,48 90,50 Q 100,52 110,50" stroke="#FFF" stroke-width="0.5" fill="none" opacity="0.3">
-                        <animate attributeName="d" values="M 70,50 Q 80,48 90,50 Q 100,52 110,50; M 70,50 Q 80,52 90,50 Q 100,48 110,50; M 70,50 Q 80,48 90,50 Q 100,52 110,50" dur="4s" repeatCount="indefinite" />
-                    </path>
                 </svg>
             </div>
             <div class="loading-text">Preparing your voyage...</div>
@@ -260,9 +203,56 @@
             </div>
         </div>
         
+        <!-- Multiplayer Player List Modal -->
+        <div class="modal-overlay" v-if="showPlayerList">
+            <div class="modal-content player-list-modal">
+                <div class="modal-header">
+                    <h2>Connected Players</h2>
+                    <button class="modal-close" @click="togglePlayerList">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="player-list">
+                        <div v-for="(peer, peerId) in peers" :key="peerId" class="player-item" :class="{'current-player': peerId === clientId}">
+                            <div class="player-avatar">
+                                <img :src="peer.avatarUrl" alt="Avatar" />
+                            </div>
+                            <div class="player-info">
+                                <div class="player-name">
+                                    {{ peer.username }} 
+                                    <span v-if="peerId === clientId">(You)</span>
+                                    <span v-if="peer.presence && peer.presence.prestigeLevel > 0" class="player-prestige-badge">P{{ peer.presence.prestigeLevel }}</span>
+                                </div>
+                                <div class="player-stats" v-if="peer.presence">
+                                    <div class="player-stat">
+                                        <i class="material-icons">catching_pokemon</i>
+                                        <span>{{ formatNumber(peer.presence.totalFishCaught || 0) }}</span>
+                                    </div>
+                                    <div class="player-stat">
+                                        <i class="material-icons">attach_money</i>
+                                        <span>${{ formatNumber(peer.presence.money || 0) }}</span>
+                                    </div>
+                                    <div class="player-location" v-if="peer.presence.activeLocationId">
+                                        <i class="material-icons">location_on</i>
+                                        <span>{{ getLocationName(peer.presence.activeLocationId) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="no-players" v-if="Object.keys(peers).length === 0">
+                        <p>No other players are currently online.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <header>
             <h1>Trawler's Empire <span class="prestige-badge" v-if="prestigeLevel > 0">P{{ prestigeLevel }}</span></h1>
             <div style="display: flex; align-items: center;">
+                <div class="players-icon" @click="togglePlayerList">
+                    <i class="material-icons">people</i>
+                    <div class="players-badge">{{ Object.keys(peers).length }}</div>
+                </div>
                 <div class="inbox-icon" @click="toggleInbox">
                     <i class="material-icons">email</i>
                     <div class="inbox-badge" v-if="unreadEmailCount > 0">{{ unreadEmailCount }}</div>
@@ -317,9 +307,18 @@
                 <div class="fishing-area">
                     <div class="water">
                         <div class="waves"></div>
-                        <!-- Add secondary waves for more depth -->
+                        <!-- Add more wave layers for depth -->
                         <div class="waves" style="top: 45px; opacity: 0.5; animation-duration: 20s; animation-delay: 1s; height: 12px;"></div>
                         <div class="waves" style="top: 15px; opacity: 0.3; animation-duration: 18s; animation-delay: 0.5s; height: 10px;"></div>
+                        
+                        <!-- Water ripples -->
+                        <div class="water-ripple" style="top: 120px;"></div>
+                        <div class="water-ripple" style="top: 180px; animation-delay: 2s;"></div>
+                        <div class="water-ripple" style="top: 240px; animation-delay: 5s;"></div>
+                        
+                        <!-- Water shine effect -->
+                        <div class="water-shine"></div>
+                        <div class="water-shine" style="top: 70%; animation-delay: 4s; opacity: 0.5;"></div>
                         
                         <div v-if="autoFishingActive" class="auto-fishing-indicator">
                             <div class="blink"></div>
@@ -346,40 +345,63 @@
                                         <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G"/>
                                     </filter>
                                 </defs>
-                                <!-- Boat hull -->
-                                <path d="M 20,40 Q 70,10 120,40 L 110,55 L 30,55 Z" fill="url(#boatGradient)" filter="url(#dropShadow)" />
-                                <!-- Mast -->
-                                <rect x="65" y="15" width="10" height="25" fill="#8B5A2B" />
+                                <!-- Boat hull with animation -->
+                                <path d="M 20,40 Q 70,10 120,40 L 110,55 L 30,55 Z" fill="url(#boatGradient)" filter="url(#dropShadow)">
+                                    <animate attributeName="d" values="M 20,40 Q 70,10 120,40 L 110,55 L 30,55 Z; M 20,38 Q 70,8 120,38 L 110,53 L 30,53 Z; M 20,40 Q 70,10 120,40 L 110,55 L 30,55 Z" dur="5s" repeatCount="indefinite" />
+                                </path>
+                                <!-- Mast with sway animation -->
+                                <rect x="65" y="15" width="10" height="25" fill="#8B5A2B">
+                                    <animateTransform attributeName="transform" type="rotate" values="0 70 40; 2 70 40; 0 70 40; -2 70 40; 0 70 40" dur="5s" repeatCount="indefinite" />
+                                </rect>
                                 <!-- Cabin -->
                                 <rect x="85" y="42" width="20" height="10" rx="2" ry="2" fill="#8D6E63" />
                                 <rect x="90" y="38" width="10" height="4" fill="#A1887F" />
                                 <rect x="89" y="38" width="12" height="2" fill="#BBBBBB" rx="1" ry="1" /> <!-- Window frame -->
-                                <rect x="90" y="39" width="10" height="1" fill="#B3E5FC" /> <!-- Window glass -->
+                                <rect x="90" y="39" width="10" height="1" fill="#B3E5FC"> <!-- Window glass with shine animation -->
+                                    <animate attributeName="fill" values="#B3E5FC; #E1F5FE; #B3E5FC" dur="4s" repeatCount="indefinite" />
+                                </rect>
                                 <!-- Mast top -->
                                 <circle cx="70" cy="12" r="7" fill="#8B4513" />
-                                <!-- Sail with texture -->
+                                <!-- Sail with movement animation -->
                                 <path d="M 70,12 L 95,2 L 95,35 L 70,12 Z" fill="url(#sailGradient)" stroke="#DDDDDD" stroke-width="1">
                                     <animate attributeName="d" values="M 70,12 L 95,2 L 95,35 L 70,12 Z; M 70,12 L 97,4 L 95,36 L 70,12 Z; M 70,12 L 95,2 L 95,35 L 70,12 Z" dur="8s" repeatCount="indefinite" />
                                 </path>
-                                <!-- Sail highlights -->
-                                <path d="M 75,14 L 92,9 L 92,30 L 75,14 Z" fill="rgba(255,255,255,0.2)" />
+                                <!-- Sail highlights with shimmer -->
+                                <path d="M 75,14 L 92,9 L 92,30 L 75,14 Z" fill="rgba(255,255,255,0.2)">
+                                    <animate attributeName="opacity" values="0.2; 0.4; 0.2" dur="4s" repeatCount="indefinite" />
+                                </path>
                                 <!-- Deck details -->
                                 <rect x="25" y="42" width="90" height="2" fill="#5D4037" />
                                 <rect x="40" y="40" width="60" height="4" fill="#795548" rx="1" ry="1" />
-                                <!-- Fishing chair -->
-                                <circle cx="40" cy="45" r="3" fill="#5D4037" />
-                                <rect x="37" y="43" width="6" height="2" fill="#795548" />
+                                <!-- Fishing chair with subtle movement -->
+                                <circle cx="40" cy="45" r="3" fill="#5D4037">
+                                    <animate attributeName="cy" values="45; 44; 45; 46; 45" dur="5s" repeatCount="indefinite" />
+                                </circle>
+                                <rect x="37" y="43" width="6" height="2" fill="#795548">
+                                    <animate attributeName="y" values="43; 42; 43; 44; 43" dur="5s" repeatCount="indefinite" />
+                                </rect>
                                 <!-- Bow decorations -->
                                 <path d="M25,45 L30,40 L35,45" stroke="#8D6E63" stroke-width="1.5" fill="none" />
-                                <!-- Hull details -->
-                                <path d="M 30,48 L 108,48" stroke="#6B4226" stroke-width="0.5" stroke-dasharray="5,2" />
-                                <path d="M 35,44 L 105,44" stroke="#6B4226" stroke-width="0.5" stroke-dasharray="3,2" />
+                                <!-- Hull details with movement -->
+                                <path d="M 30,48 L 108,48" stroke="#6B4226" stroke-width="0.5" stroke-dasharray="5,2">
+                                    <animate attributeName="d" values="M 30,48 L 108,48; M 30,47 L 108,47; M 30,48 L 108,48" dur="5s" repeatCount="indefinite" />
+                                </path>
+                                <path d="M 35,44 L 105,44" stroke="#6B4226" stroke-width="0.5" stroke-dasharray="3,2">
+                                    <animate attributeName="d" values="M 35,44 L 105,44; M 35,43 L 105,43; M 35,44 L 105,44" dur="5s" repeatCount="indefinite" />
+                                </path>
+                                <!-- Water splashes at boat bottom -->
+                                <path d="M 40,55 Q 45,58 50,55" stroke="#ffffff" stroke-width="1" fill="none" opacity="0.6">
+                                    <animate attributeName="opacity" values="0.6; 0.3; 0.6" dur="2s" repeatCount="indefinite" />
+                                </path>
+                                <path d="M 80,55 Q 85,58 90,55" stroke="#ffffff" stroke-width="1" fill="none" opacity="0.6">
+                                    <animate attributeName="opacity" values="0.6; 0.3; 0.6" dur="3s" repeatCount="indefinite" />
+                                </path>
                             </svg>
                             <div class="fishing-line" v-if="isFishing" :style="{ height: `${lineLength}px` }"></div>
                             <div v-if="showSplash" class="fishing-splash" :style="{ left: '50%', top: `${lineLength}px` }"></div>
                         </div>
                         
-                        <!-- Seaweed decorations with more detail -->
+                        <!-- Seaweed decorations with more detail and varied animations -->
                         <div class="seaweed" style="left: 10%; height: 90px; width: 12px; animation-delay: 0.5s;"></div>
                         <div class="seaweed" style="left: 15%; height: 65px; width: 8px; animation-delay: 1.2s;"></div>
                         <div class="seaweed" style="left: 25%; height: 110px; width: 15px; animation-delay: 0.8s;"></div>
@@ -552,7 +574,6 @@
                             >
                                 <div class="fish-card-locked-overlay" v-if="!fish.discovered">
                                     <i class="material-icons">lock</i>
-                                    <span>Undiscovered Species</span>
                                 </div>
                                 <div class="fish-image">
                                     <svg v-if="fish.discovered" width="60" height="30" viewBox="0 0 60 30">
@@ -572,13 +593,7 @@
                                 </div>
                                 <div class="fish-details">
                                     <div class="fish-name">{{ fish.discovered ? fish.name : '???' }}</div>
-                                    <div class="fish-rarity" :class="fish.discovered ? 'rarity-' + fish.rarity.toLowerCase() : ''">
-                                        {{ fish.discovered ? fish.rarity : '???' }}
-                                    </div>
-                                    <div class="fish-location" v-if="fish.discovered">
-                                        <i class="material-icons">location_on</i>
-                                        {{ fish.location }}
-                                    </div>
+                                    <div class="fish-rarity">{{ fish.discovered ? fish.rarity : '???' }}</div>
                                     <div class="fish-stats" v-if="fish.discovered">
                                         <div><i class="material-icons">attach_money</i> {{ fish.value }}</div>
                                         <div><i class="material-icons">catching_pokemon</i> {{ fish.caught }}</div>
@@ -597,7 +612,7 @@
                                 <div class="modal-body">
                                     <div class="fish-detail-container">
                                         <div class="fish-detail-image">
-                                            <svg width="180" height="90" viewBox="0 0 60 30">
+                                            <svg width="120" height="60" viewBox="0 0 60 30">
                                                 <path d="M 10,15 Q 20,3 40,15 Q 20,27 10,15 Z" :fill="selectedFish.color" />
                                                 <circle cx="45" cy="15" r="2" fill="black" />
                                                 <circle cx="45.5" cy="14.5" r="0.5" fill="white" />
@@ -608,43 +623,27 @@
                                         </div>
                                         <div class="fish-detail-info">
                                             <h3>{{ selectedFish.name }}</h3>
-                                            <div class="rarity-badge" :class="'rarity-' + selectedFish.rarity.toLowerCase()">{{ selectedFish.rarity }}</div>
-                                            
-                                            <div class="fish-detail-primary">
-                                                <div><strong>Location:</strong> {{ selectedFish.location }}</div>
-                                                <div><strong>Value:</strong> ${{ selectedFish.value }}</div>
-                                                <div><strong>Total Caught:</strong> {{ selectedFish.caught }}</div>
-                                            </div>
+                                            <div>Rarity: <strong>{{ selectedFish.rarity }}</strong></div>
+                                            <div>Location: <strong>{{ selectedFish.location }}</strong></div>
+                                            <div>Value: <strong>${{ selectedFish.value }}</strong></div>
                                             
                                             <div class="fish-detail-stats">
                                                 <div class="stat-row">
-                                                    <div class="stat-label"><i class="material-icons">scale</i> Record Weight:</div>
+                                                    <div>Total Caught:</div>
+                                                    <div>{{ selectedFish.caught }}</div>
+                                                </div>
+                                                <div class="stat-row">
+                                                    <div>Record Weight:</div>
                                                     <div>{{ selectedFish.record.weight }}kg</div>
                                                 </div>
                                                 <div class="stat-row">
-                                                    <div class="stat-label"><i class="material-icons">straighten</i> Record Length:</div>
+                                                    <div>Record Length:</div>
                                                     <div>{{ selectedFish.record.length }}m</div>
-                                                </div>
-                                                <div class="stat-row">
-                                                    <div class="stat-label"><i class="material-icons">attach_money</i> Value Per Unit:</div>
-                                                    <div>${{ selectedFish.value }}</div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="progress-container">
-                                                <h4>Collection Progress</h4>
-                                                <div>You've caught {{ selectedFish.caught }} of this species</div>
-                                                <div class="progress-bar">
-                                                    <div class="progress-fill" :style="{ width: `${Math.min(selectedFish.caught / 100, 1) * 100}%` }"></div>
                                                 </div>
                                             </div>
                                             
                                             <div class="catch-history">
-                                                <h4>Discovery Information</h4>
-                                                <p>First discovered at {{ selectedFish.location }}.</p>
-                                                <p v-if="selectedFish.caught >= 10">You've become proficient at catching this species.</p>
-                                                <p v-if="selectedFish.caught >= 50">You're now an expert at catching this species!</p>
-                                                <p v-if="selectedFish.caught >= 100">You've mastered catching this species!</p>
+                                                <p>First discovered at location: {{ selectedFish.location }}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -663,53 +662,18 @@
                         <button class="modal-close" @click="toggleInbox">×</button>
                     </div>
                     <div class="modal-body">
-                        <button class="compose-email-button" @click="toggleComposeEmail">
-                            <i class="material-icons">create</i> Compose Message
-                        </button>
-                        
-                        <!-- Compose Email Form -->
-                        <div class="compose-email-container" v-if="showComposeEmail">
-                            <h3>New Message</h3>
-                            <div class="compose-field">
-                                <label for="email-to">To:</label>
-                                <input id="email-to" type="text" :value="CONFIG.inboxSystem.defaultSender + ' <' + CONFIG.inboxSystem.senderEmail + '>'" disabled />
-                            </div>
-                            <div class="compose-field">
-                                <label for="email-subject">Subject:</label>
-                                <input id="email-subject" type="text" v-model="newEmailSubject" placeholder="Enter subject..." />
-                            </div>
-                            <div class="compose-field">
-                                <label for="email-content">Message:</label>
-                                <textarea id="email-content" v-model="newEmailContent" placeholder="Write your message here..."></textarea>
-                            </div>
-                            <div class="compose-actions">
-                                <button class="cancel-btn" @click="toggleComposeEmail">Cancel</button>
-                                <button class="send-btn" @click="sendEmail">Send Message</button>
-                            </div>
-                        </div>
-                        
-                        <div class="email-filter" v-if="!showComposeEmail">
-                            <div class="email-filter-item active">All Messages</div>
-                            <div class="email-filter-item">Inbox</div>
-                            <div class="email-filter-item">Sent</div>
-                        </div>
-                        
-                        <div class="inbox-empty" v-if="emails.length === 0 && !showComposeEmail">
+                        <div class="inbox-empty" v-if="emails.length === 0">
                             <i class="material-icons" style="font-size: 48px; color: #BBDEFB; margin-bottom: 15px;">inbox</i>
                             <h3>Your inbox is empty</h3>
                             <p>Messages from the game developer will appear here</p>
                         </div>
                         
-                        <div class="inbox-list" v-else-if="!showComposeEmail">
+                        <div class="inbox-list" v-else>
                             <div 
                                 v-for="email in emails" 
                                 :key="email.id" 
                                 class="email-item"
-                                :class="{ 
-                                    'email-unread': !email.read, 
-                                    'sent-email': email.isSent,
-                                    'response-email': email.isResponse
-                                }"
+                                :class="{ 'email-unread': !email.read }"
                                 @click="markEmailAsRead(email.id)"
                             >
                                 <div class="email-header">
@@ -956,48 +920,13 @@
         
         <footer>
             <p>Trawler's Empire - {{ currentRank }} - Reel in riches and build your fishing empire!</p>
-            <button class="reset-button" @click="resetProgress">Reset All Progress</button>
+            <div>
+                <button class="reset-button" @click="resetProgress">Reset All Progress</button>
+                <button class="save-quit-button" @click="saveAndQuit">Save & Quit</button>
+            </div>
         </footer>
     </div>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            function addUnderwaterLights() {
-                const waterElement = document.querySelector('.water');
-                if (!waterElement) return;
-                
-                // Clear existing lights
-                const existingLights = document.querySelectorAll('.underwater-light');
-                existingLights.forEach(light => light.remove());
-                
-                // Add new lights
-                for(let i = 0; i < 5; i++) {
-                    const light = document.createElement('div');
-                    light.className = 'underwater-light';
-                    
-                    // Random positioning
-                    const width = Math.random() * 150 + 50;
-                    const height = width;
-                    const left = Math.random() * 80 + 10;
-                    const top = Math.random() * 60 + 20;
-                    
-                    light.style.width = `${width}px`;
-                    light.style.height = `${height}px`;
-                    light.style.left = `${left}%`;
-                    light.style.top = `${top}%`;
-                    light.style.animationDelay = `${Math.random() * 5}s`;
-                    
-                    waterElement.appendChild(light);
-                }
-            }
-            
-            // Add initial lights
-            setTimeout(addUnderwaterLights, 1000);
-            
-            // Periodically refresh lights
-            setInterval(addUnderwaterLights, 15000);
-        });
-    </script>
     <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -134,6 +134,13 @@ createApp({
         let fishIdCounter = 0;
         let autoFishingInterval = null;
 
+        // Multiplayer state
+        const room = ref(null);
+        const clientId = ref('');
+        const peers = ref({});
+        const showPlayerList = ref(false);
+        const otherPlayerFishCaught = ref([]);
+        
         // Add showSplash for animation
         const showSplash = ref(false);
 
@@ -158,10 +165,7 @@ createApp({
         const showInbox = ref(false);
         const emails = ref([]);
         const unreadEmailCount = ref(0);
-        const showComposeEmail = ref(false);
-        const newEmailContent = ref('');
-        const newEmailSubject = ref('');
-
+        
         // Initialize inbox with welcome message
         function initializeInbox() {
             if (CONFIG.inboxSystem.enabled && !CONFIG.inboxSystem.welcomeMessageSent) {
@@ -188,47 +192,26 @@ createApp({
                     `,
                     read: false
                 });
-
-                // Add gameplay tips email
+                
+                // Add new fish species announcement
                 addEmail({
-                    id: 'tips-1',
-                    subject: 'Essential Fishing Tips',
+                    id: 'fish-update-1',
+                    subject: 'New Fish Species Discovered!',
                     sender: CONFIG.inboxSystem.defaultSender,
                     senderEmail: CONFIG.inboxSystem.senderEmail,
                     date: new Date().toLocaleDateString(),
                     content: `
-                        <p>Greetings, Fisher!</p>
-                        <p>I wanted to share some expert tips to help you on your journey:</p>
+                        <p>Exciting news, Captain!</p>
+                        <p>Our marine biologists have discovered several new fish species in all fishing locations!</p>
+                        <p>New discoveries include:</p>
                         <ul>
-                            <li><strong>Prestige System:</strong> Don't forget to prestige when you meet the requirements. Each level provides permanent bonuses!</li>
-                            <li><strong>Encyclopedia Completion:</strong> Try to discover all fish species to unlock special achievements.</li>
-                            <li><strong>Auto-Fishing:</strong> Invest in auto-fishers early for passive income, especially useful for offline progress.</li>
-                            <li><strong>Location Strategy:</strong> Each location has unique fish. Ocean fishing is the most profitable but requires significant investment.</li>
+                            <li>Mystic Goldfish - An extremely rare pond species</li>
+                            <li>Crystal Salmon - Found in the depths of mountain lakes</li>
+                            <li>Ghost Catfish - A mythical river species that few have seen</li>
+                            <li>Anglerfish, Electric Eel, and more in the deep ocean!</li>
                         </ul>
-                        <p>May your nets always be full!</p>
-                        <p>- Jafet Egill<br>Game Developer</p>
-                    `,
-                    read: false
-                });
-
-                // Add update announcement email
-                addEmail({
-                    id: 'update-1',
-                    subject: 'New Features: Encyclopedia & Prestige System',
-                    sender: CONFIG.inboxSystem.defaultSender,
-                    senderEmail: CONFIG.inboxSystem.senderEmail,
-                    date: new Date().toLocaleDateString(),
-                    content: `
-                        <p>Hello Captain,</p>
-                        <p>We've just deployed some exciting new features to Trawler's Empire!</p>
-                        <h3>What's New:</h3>
-                        <ul>
-                            <li><strong>Enhanced Fish Encyclopedia:</strong> We've completely redesigned the fish encyclopedia for better visualization and organization.</li>
-                            <li><strong>Expanded Prestige System:</strong> New prestige ranks have been added, with titles up to "Eternal Fisherman" at level 100!</li>
-                            <li><strong>Inbox System:</strong> You're reading this on our new in-game email system where you'll receive updates and tips.</li>
-                        </ul>
-                        <p>We're constantly improving Trawler's Empire and would love to hear your feedback.</p>
-                        <p>Tight lines!</p>
+                        <p>Update your Fish Encyclopedia with these new species to earn additional prestige!</p>
+                        <p>Happy fishing!</p>
                         <p>- Jafet Egill<br>Game Developer</p>
                     `,
                     read: false
@@ -259,124 +242,11 @@ createApp({
         // Toggle inbox view
         function toggleInbox() {
             showInbox.value = !showInbox.value;
-            showComposeEmail.value = false;
-        }
-        
-        // Toggle compose email view
-        function toggleComposeEmail() {
-            showComposeEmail.value = !showComposeEmail.value;
-            if (showComposeEmail.value) {
-                newEmailSubject.value = '';
-                newEmailContent.value = '';
-            }
-        }
-        
-        // Send email to developer and get auto-response
-        function sendEmail() {
-            if (!newEmailSubject.value.trim() || !newEmailContent.value.trim()) {
-                alert('Please provide both a subject and message content.');
-                return;
-            }
-            
-            // Generate a unique ID using timestamp + random number
-            const playerEmailId = `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-            
-            // Add player's email to the sent folder
-            addEmail({
-                id: playerEmailId,
-                subject: `[Sent] ${newEmailSubject.value}`,
-                sender: 'You',
-                senderEmail: 'player@trawlersempire.com',
-                date: new Date().toLocaleDateString(),
-                content: `
-                    <p>${newEmailContent.value.replace(/\n/g, '<br>')}</p>
-                    <p><i>Message sent to ${CONFIG.inboxSystem.defaultSender}</i></p>
-                `,
-                read: true,
-                isSent: true
-            });
-            
-            // Generate auto-response based on content analysis
-            setTimeout(() => {
-                // AI will analyze the content and generate appropriate response
-                const response = generateAutoResponse(newEmailSubject.value, newEmailContent.value);
-                
-                // Add developer's response
-                addEmail({
-                    id: `response-${playerEmailId}`,
-                    subject: `RE: ${newEmailSubject.value}`,
-                    sender: CONFIG.inboxSystem.defaultSender,
-                    senderEmail: CONFIG.inboxSystem.senderEmail,
-                    date: new Date().toLocaleDateString(),
-                    content: response,
-                    read: false,
-                    isResponse: true
-                });
-            }, 2000 + Math.random() * 3000); // Random delay between 2-5 seconds for realism
-            
-            // Close compose window and show confirmation
-            toggleComposeEmail();
-            alert('Your message has been sent!');
-        }
-        
-        // Generate auto response based on email content
-        function generateAutoResponse(subject, content) {
-            const lowerSubject = subject.toLowerCase();
-            const lowerContent = content.toLowerCase();
-            
-            // Check for different types of inquiries and generate appropriate responses
-            if (lowerContent.includes('bug') || lowerContent.includes('issue') || lowerContent.includes('problem')) {
-                return `
-                    <p>Hello Captain,</p>
-                    <p>Thanks for reporting this issue. I'm constantly working to improve Trawler's Empire and your feedback is invaluable.</p>
-                    <p>Could you provide more details about the specific conditions when this bug occurs? Screenshots are also helpful if possible.</p>
-                    <p>I'll investigate this issue and address it in an upcoming update.</p>
-                    <p>Happy fishing!</p>
-                    <p>- Jafet Egill<br>Game Developer</p>
-                `;
-            } else if (lowerContent.includes('suggest') || lowerContent.includes('idea') || lowerContent.includes('feature')) {
-                return `
-                    <p>Hello Captain,</p>
-                    <p>Thank you for your suggestion! I'm always looking for great ideas to make Trawler's Empire even better.</p>
-                    <p>I've added your idea to my development roadmap for consideration. Player feedback is what drives the game's evolution.</p>
-                    <p>Keep the great ideas coming, and thanks for being part of the Trawler's Empire community!</p>
-                    <p>- Jafet Egill<br>Game Developer</p>
-                `;
-            } else if (lowerContent.includes('thank') || lowerContent.includes('love') || lowerContent.includes('great')) {
-                return `
-                    <p>Hello Captain,</p>
-                    <p>Thank you for your kind words! It's messages like yours that make game development rewarding.</p>
-                    <p>I'm so glad you're enjoying Trawler's Empire. I put a lot of heart into creating a game that's both fun and engaging.</p>
-                    <p>Stay tuned for more updates and features coming soon!</p>
-                    <p>- Jafet Egill<br>Game Developer</p>
-                `;
-            } else if (lowerContent.includes('how') || lowerContent.includes('help') || lowerContent.includes('guide')) {
-                return `
-                    <p>Hello Captain,</p>
-                    <p>Thanks for reaching out! I'm happy to help you with any questions about Trawler's Empire.</p>
-                    <p>Here are some quick tips:</p>
-                    <ul>
-                        <li>Upgrade your fishing rod early to catch more fish per cast</li>
-                        <li>Auto-fishers work even when you're away from the game</li>
-                        <li>Different locations have different types of fish with varying rarities</li>
-                        <li>The Encyclopedia tracks all fish you've discovered</li>
-                        <li>Prestige when you meet the requirements for permanent bonuses</li>
-                    </ul>
-                    <p>Let me know if you have any specific questions!</p>
-                    <p>- Jafet Egill<br>Game Developer</p>
-                `;
-            } else {
-                return `
-                    <p>Hello Captain,</p>
-                    <p>Thank you for your message! I appreciate you taking the time to write to me.</p>
-                    <p>I'm constantly working on improving Trawler's Empire based on player feedback and ideas.</p>
-                    <p>Keep an eye on your inbox for announcements about upcoming features and updates!</p>
-                    <p>Happy fishing!</p>
-                    <p>- Jafet Egill<br>Game Developer</p>
-                `;
-            }
         }
 
+        // Initialize location renderer
+        const locationRenderer = window.locationRenderer || new LocationRenderer();
+        
         // Fishing locations
         const fishingLocations = ref([
             {
@@ -396,7 +266,9 @@ createApp({
                     { id: 'epic1', name: "Epic Fish", chance: 0.06, value: 25, color: "#9932CC", minDepth: 60, maxDepth: 90 },
                     { id: 'epic2', name: "Albino Catfish", chance: 0.03, value: 35, color: "#F5F5F5", minDepth: 50, maxDepth: 80 },
                     { id: 'legendary1', name: "Legendary Fish", chance: 0.006, value: 150, color: "#FF4500", minDepth: 80, maxDepth: 100 },
-                    { id: 'legendary2', name: "Crowned Koi", chance: 0.004, value: 200, color: "#FFA07A", minDepth: 70, maxDepth: 100 }
+                    { id: 'legendary2', name: "Crowned Koi", chance: 0.004, value: 200, color: "#FFA07A", minDepth: 70, maxDepth: 100 },
+                    { id: 'mythic1', name: "Mystic Goldfish", chance: 0.002, value: 300, color: "#FFD700", minDepth: 85, maxDepth: 100 },
+                    { id: 'special1', name: "Spotted Sunfish", chance: 0.08, value: 12, color: "#E6A817", minDepth: 25, maxDepth: 55 }
                 ]
             },
             {
@@ -416,7 +288,9 @@ createApp({
                     { id: 'epic3', name: "Rainbow Trout", chance: 0.1, value: 40, color: "#BA55D3", minDepth: 60, maxDepth: 90 },
                     { id: 'epic4', name: "Arctic Char", chance: 0.05, value: 50, color: "#E91E63", minDepth: 55, maxDepth: 85 },
                     { id: 'legendary3', name: "Golden Carp", chance: 0.03, value: 200, color: "#FFA500", minDepth: 80, maxDepth: 100 },
-                    { id: 'legendary4', name: "Ancient Sturgeon", chance: 0.02, value: 250, color: "#607D8B", minDepth: 75, maxDepth: 100 }
+                    { id: 'legendary4', name: "Ancient Sturgeon", chance: 0.02, value: 250, color: "#607D8B", minDepth: 75, maxDepth: 100 },
+                    { id: 'mythic2', name: "Crystal Salmon", chance: 0.01, value: 350, color: "#90CAF9", minDepth: 85, maxDepth: 100 },
+                    { id: 'special2', name: "Albino Trout", chance: 0.05, value: 30, color: "#F0F0F0", minDepth: 45, maxDepth: 70 }
                 ]
             },
             {
@@ -436,7 +310,9 @@ createApp({
                     { id: 'epic5', name: "River Sturgeon", chance: 0.1, value: 60, color: "#9370DB", minDepth: 60, maxDepth: 90 },
                     { id: 'epic6', name: "Striped Bass", chance: 0.05, value: 80, color: "#455A64", minDepth: 55, maxDepth: 85 },
                     { id: 'legendary5', name: "Royal Salmon", chance: 0.05, value: 250, color: "#CD5C5C", minDepth: 80, maxDepth: 100 },
-                    { id: 'legendary6', name: "River Dragon", chance: 0.05, value: 350, color: "#00BCD4", minDepth: 75, maxDepth: 100 }
+                    { id: 'legendary6', name: "River Dragon", chance: 0.05, value: 350, color: "#00BCD4", minDepth: 75, maxDepth: 100 },
+                    { id: 'mythic3', name: "Ghost Catfish", chance: 0.01, value: 400, color: "#E0E0E0", minDepth: 85, maxDepth: 100 },
+                    { id: 'special3', name: "Glowing Carp", chance: 0.07, value: 45, color: "#76FF03", minDepth: 50, maxDepth: 80 }
                 ]
             },
             {
@@ -458,16 +334,17 @@ createApp({
                     { id: 'legendary7', name: "Blue Marlin", chance: 0.05, value: 500, color: "#0000CD", minDepth: 80, maxDepth: 100 },
                     { id: 'legendary8', name: "Colossal Squid", chance: 0.05, value: 800, color: "#D32F2F", minDepth: 75, maxDepth: 100 },
                     { id: 'mythic1', name: "Kraken Spawn", chance: 0.03, value: 1200, color: "#311B92", minDepth: 90, maxDepth: 100 },
-                    { id: 'mythic2', name: "Abyssal Leviathan", chance: 0.02, value: 2000, color: "#880E4F", minDepth: 95, maxDepth: 100 }
+                    { id: 'mythic2', name: "Abyssal Leviathan", chance: 0.02, value: 2000, color: "#880E4F", minDepth: 95, maxDepth: 100 },
+                    { id: 'mythic4', name: "Anglerfish", chance: 0.03, value: 700, color: "#37474F", minDepth: 85, maxDepth: 100 },
+                    { id: 'special4', name: "Electric Eel", chance: 0.07, value: 90, color: "#FFEB3B", minDepth: 60, maxDepth: 90 },
+                    { id: 'legendary9', name: "Giant Manta Ray", chance: 0.04, value: 600, color: "#37474F", minDepth: 70, maxDepth: 95 },
+                    { id: 'special5', name: "Moonfish", chance: 0.06, value: 120, color: "#E0E0E0", minDepth: 60, maxDepth: 85 }
                 ]
             }
         ]);
 
-        // Initialize location renderer
+        // Load canvas images
         function loadLocationCanvases() {
-            const locationRenderer = window.locationRenderer;
-            if (!locationRenderer) return;
-            
             fishingLocations.value.forEach(location => {
                 location.canvasImage = locationRenderer.getLocationCanvas(location.id);
             });
@@ -632,6 +509,14 @@ createApp({
             isFishing.value = true;
             boatPosition.value = Math.random() * 80 + 10; // Random position between 10% and 90%
             
+            // Update presence for multiplayer
+            if (room.value) {
+                room.value.updatePresence({
+                    isFishing: true,
+                    boatPosition: boatPosition.value
+                });
+            }
+            
             // Animate fishing line down
             lineLength.value = 0;
             setTimeout(() => {
@@ -658,6 +543,12 @@ createApp({
                         lineLength.value = 0;
                         setTimeout(() => {
                             isFishing.value = false;
+                            // Update presence for multiplayer
+                            if (room.value) {
+                                room.value.updatePresence({
+                                    isFishing: false
+                                });
+                            }
                         }, 500);
                     }, 500);
                 }, 1000);
@@ -674,23 +565,26 @@ createApp({
             const splashX = boatRect.left + boatRect.width / 2;
             const splashY = boatRect.top + lineLength.value;
             
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 12; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'water-particle';
                 
                 // Random position around splash point
                 const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * 20 + 5;
+                const distance = Math.random() * 30 + 5;
                 const x = splashX + Math.cos(angle) * distance;
                 const y = splashY + Math.sin(angle) * distance;
                 
                 // Set particle styles
                 particle.style.left = `${x}px`;
                 particle.style.top = `${y}px`;
-                particle.style.opacity = Math.random() * 0.5 + 0.5;
+                particle.style.opacity = Math.random() * 0.7 + 0.3;
+                particle.style.width = `${Math.random() * 3 + 1}px`;
+                particle.style.height = `${Math.random() * 3 + 1}px`;
+                particle.style.boxShadow = '0 0 2px rgba(255,255,255,0.8)';
                 
                 // Add animation
-                particle.style.animation = `particle-fly ${Math.random() * 1 + 0.5}s ease-out forwards`;
+                particle.style.animation = `particle-fly ${Math.random() * 1.5 + 0.8}s ease-out forwards`;
                 
                 // Append particle
                 splashContainer.appendChild(particle);
@@ -698,13 +592,14 @@ createApp({
                 // Remove particle after animation
                 setTimeout(() => {
                     particle.remove();
-                }, 1500);
+                }, 2500);
             }
         }
 
-        // Modified catch fish function to use location-specific fish
+        // Catch fish
         function catchFish(isAuto = false) {
             const catchAmount = isAuto ? Math.ceil(autoFishingRate.value) : fishingPower.value;
+            let lastCaught = null;
             
             for (let i = 0; i < catchAmount; i++) {
                 let rand = Math.random();
@@ -720,6 +615,13 @@ createApp({
                         }
                         inventory.value[fish.name]++;
                         totalFishCaught.value++;
+                        
+                        // Track last caught fish for multiplayer updates
+                        lastCaught = {
+                            fishName: fish.name,
+                            value: fish.value,
+                            timestamp: Date.now()
+                        };
                         
                         // Update encyclopedia
                         if (encyclopedia.value[fish.id]) {
@@ -753,6 +655,16 @@ createApp({
                         break;
                     }
                 }
+            }
+            
+            // Broadcast the catch to other players
+            if (lastCaught && room.value) {
+                room.value.updatePresence({
+                    lastCaughtFish: lastCaught
+                });
+                
+                // Update general presence data
+                updatePlayerPresence();
             }
         }
 
@@ -828,6 +740,19 @@ createApp({
                 cost: 100,
                 effect: () => { /* Improve fish rarity chances */ },
                 getCost: (level) => Math.floor(100 * Math.pow(1.7, level - 1))
+            },
+            {
+                id: 'merchant',
+                name: 'Fish Merchant',
+                description: 'Automatically sells 5% of your fish every 10 seconds',
+                level: 0,
+                cost: 1500,
+                effect: () => { 
+                    // Setup auto-selling
+                    setupAutoSelling();
+                },
+                getCost: (level) => Math.floor(1500 * Math.pow(2, level)),
+                maxLevel: 1
             }
         ]);
 
@@ -884,6 +809,53 @@ createApp({
             }, 500);
         }
 
+        // Auto sell fish
+        function autoSellFish() {
+            if (Object.keys(inventory.value).length === 0) return;
+            
+            // Get all fish types in inventory
+            const fishTypes = Object.keys(inventory.value);
+            
+            // Sell 5% of each type of fish every interval
+            fishTypes.forEach(type => {
+                if (inventory.value[type] > 0) {
+                    const fishType = currentFishTypes.value.find(fish => fish.name === type);
+                    if (fishType) {
+                        // Calculate amount to sell (5% of inventory, min 1)
+                        const amountToSell = Math.max(1, Math.floor(inventory.value[type] * 0.05));
+                        const amountActuallySold = Math.min(amountToSell, inventory.value[type]);
+                        
+                        // Apply prestige bonus to fish value
+                        const valueMultiplier = 1 + prestigeBonuses.fishValue;
+                        const value = Math.floor(fishType.value * amountActuallySold * valueMultiplier);
+                        
+                        // Add money and reduce inventory
+                        money.value += value;
+                        inventory.value[type] -= amountActuallySold;
+                        
+                        // If inventory is empty for this type, remove it
+                        if (inventory.value[type] <= 0) {
+                            delete inventory.value[type];
+                        }
+                    }
+                }
+            });
+            
+            // Force Vue to recognize the change
+            inventory.value = { ...inventory.value };
+        }
+
+        // Setup auto selling
+        function setupAutoSelling() {
+            const merchantUpgrade = upgrades.value.find(u => u.id === 'merchant');
+            if (merchantUpgrade && merchantUpgrade.level > 0) {
+                // Auto sell fish every 10 seconds
+                setInterval(() => {
+                    autoSellFish();
+                }, 10000);
+            }
+        }
+
         // Generate fish swimming in the background
         function generateFish() {
             const fishType = currentFishTypes.value[Math.floor(Math.random() * currentFishTypes.value.length)];
@@ -910,7 +882,7 @@ createApp({
             }, 20000); // Longer time to cross for more natural movement
         }
 
-        // Move fish in water with more natural movement
+        // Update fish positions with more natural movement
         function updateFishPositions() {
             fishInWater.value.forEach(fish => {
                 // Add subtle vertical movement
@@ -940,6 +912,35 @@ createApp({
                     fish.position -= fish.speed;
                 }
             });
+        }
+
+        // Create water ripple effect
+        function createWaterRipple() {
+            const waterContainer = document.querySelector('.water');
+            if (!waterContainer) return;
+            
+            const ripple = document.createElement('div');
+            ripple.className = 'water-ripple';
+            ripple.style.top = `${Math.random() * 300 + 50}px`;
+            ripple.style.opacity = `${Math.random() * 0.5 + 0.2}`;
+            ripple.style.animation = `ripple-move ${Math.random() * 5 + 8}s linear forwards`;
+            
+            waterContainer.appendChild(ripple);
+            
+            // Remove ripple after animation
+            setTimeout(() => {
+                ripple.remove();
+            }, 15000);
+        }
+
+        // Additional ocean ambience effects
+        function setupOceanAmbience() {
+            // Create random ripples
+            setInterval(() => {
+                if (Math.random() < 0.3) { // 30% chance every interval
+                    createWaterRipple();
+                }
+            }, 3000);
         }
 
         // Format large numbers
@@ -1012,6 +1013,90 @@ createApp({
             return Math.round((discoveredFishCount.value / totalFishCount.value) * 100);
         });
 
+        // Initialize websim socket
+        async function initializeMultiplayer() {
+            try {
+                room.value = new WebsimSocket();
+                await room.value.initialize();
+                
+                clientId.value = room.value.clientId;
+                
+                // Subscribe to presence updates (player positions, etc.)
+                room.value.subscribePresence((currentPresence) => {
+                    peers.value = room.value.peers;
+                    // Display fish caught notifications for other players
+                    Object.keys(currentPresence).forEach(id => {
+                        if (id !== clientId.value && currentPresence[id].lastCaughtFish) {
+                            const lastCaught = currentPresence[id].lastCaughtFish;
+                            if (lastCaught && lastCaught.timestamp > Date.now() - 2000) { // Only show recent catches
+                                showOtherPlayerCatch(id, lastCaught);
+                            }
+                        }
+                    });
+                });
+                
+                // Subscribe to room state (shared game objects)
+                room.value.subscribeRoomState((currentRoomState) => {
+                    // Handle any room state changes here
+                    // This could be used for global events, shared resources, etc.
+                });
+                
+                // Update your own presence when significant game state changes
+                updatePlayerPresence();
+            } catch (error) {
+                console.error('Failed to initialize multiplayer:', error);
+            }
+        }
+
+        // Update your presence data
+        function updatePlayerPresence() {
+            if (!room.value) return;
+            
+            room.value.updatePresence({
+                money: money.value,
+                totalFishCaught: totalFishCaught.value,
+                fishingPower: fishingPower.value,
+                autoFishingRate: autoFishingRate.value,
+                activeLocationId: activeLocationId.value,
+                isFishing: isFishing.value,
+                boatPosition: boatPosition.value,
+                prestigeLevel: prestigeLevel.value,
+                lastOnline: Date.now()
+            });
+        }
+
+        // Toggle the player list modal
+        function togglePlayerList() {
+            showPlayerList.value = !showPlayerList.value;
+        }
+
+        // Get location name from ID
+        function getLocationName(locationId) {
+            const location = fishingLocations.value.find(loc => loc.id === locationId);
+            return location ? location.name : 'Unknown';
+        }
+
+        // Show other player's catch notification
+        function showOtherPlayerCatch(playerId, catchInfo) {
+            if (!catchInfo) return;
+            
+            const player = peers.value[playerId];
+            if (!player) return;
+            
+            otherPlayerFishCaught.value.push({
+                id: Date.now(),
+                playerId,
+                playerName: player.username,
+                fishName: catchInfo.fishName,
+                value: catchInfo.value
+            });
+            
+            // Remove notification after animation
+            setTimeout(() => {
+                otherPlayerFishCaught.value = otherPlayerFishCaught.value.filter(c => c.id !== catchInfo.id);
+            }, 2000);
+        }
+
         // Reset progress function with enhanced encyclopedia reset
         function resetProgress() {
             if (confirm('Are you sure you want to reset ALL progress? This includes your Prestige Level and cannot be undone!')) {
@@ -1051,15 +1136,17 @@ createApp({
                 
                 // Reset encyclopedia - completely reinitialize it
                 encyclopediaUnlocked.value = false;
-                initializeEncyclopedia(); // Reinitialize the encyclopedia from scratch
+                Object.keys(encyclopedia.value).forEach(fishId => {
+                    encyclopedia.value[fishId].discovered = false;
+                    encyclopedia.value[fishId].caught = 0;
+                    encyclopedia.value[fishId].record = { weight: 0, length: 0 };
+                });
                 
-                // Keep the emails but reset welcome message flag
-                CONFIG.inboxSystem.welcomeMessageSent = false;
-                emails.value = [];
-                unreadEmailCount.value = 0;
+                // Keep the emails
+                CONFIG.inboxSystem.welcomeMessageSent = true;
                 
-                // Reinitialize the inbox
-                initializeInbox();
+                // Ensure the encyclopedia is fully reset
+                encyclopedia.value = { ...encyclopedia.value };
                 
                 selectedFish.value = null;
                 
@@ -1076,12 +1163,49 @@ createApp({
                 // Close any open modals
                 showEncyclopedia.value = false;
                 showBoatCustomization.value = false;
-                showInbox.value = false;
                 
                 alert('Game progress has been completely reset!');
             }
         }
-
+        
+        // Save and quit function
+        function saveAndQuit() {
+            // Save current game state
+            const saveData = {
+                money: money.value,
+                inventory: inventory.value,
+                totalFishCaught: totalFishCaught.value,
+                fishingPower: fishingPower.value,
+                autoFishingRate: autoFishingRate.value,
+                upgrades: upgrades.value.map(u => ({ id: u.id, level: u.level, cost: u.cost })),
+                fishingLocations: fishingLocations.value.map(loc => ({ 
+                    id: loc.id, 
+                    unlocked: loc.unlocked 
+                })),
+                activeLocationId: activeLocationId.value,
+                boatCustomization: boatCustomization.value,
+                encyclopedia: encyclopedia.value,
+                encyclopediaUnlocked: encyclopediaUnlocked.value,
+                lastOnlineTime: Date.now(),
+                prestigeLevel: prestigeLevel.value,
+                emails: emails.value
+            };
+            localStorage.setItem('fishingTycoonSave', JSON.stringify(saveData));
+            
+            // Show confirmation and redirect
+            if (confirm('Game saved successfully! Close the game?')) {
+                // Create a goodbye page and redirect
+                document.body.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg, #0277bd, #01579b);color:white;text-align:center;padding:20px;">
+                        <h1 style="font-size:3rem;margin-bottom:20px;">Game Saved Successfully!</h1>
+                        <p style="font-size:1.5rem;margin-bottom:30px;">Thank you for playing Trawler's Empire</p>
+                        <p style="opacity:0.8;margin-bottom:20px;">Your game progress has been saved.</p>
+                        <button onclick="window.location.reload()" style="padding:10px 30px;background:#4CAF50;color:white;border:none;border-radius:5px;font-size:1.2rem;cursor:pointer;transition:all 0.3s;">Return to Game</button>
+                    </div>
+                `;
+            }
+        }
+        
         // Calculate offline progress
         function calculateOfflineProgress() {
             if (!CONFIG.offlineProgress.enabled || autoFishingRate.value <= 0) {
@@ -1324,13 +1448,11 @@ createApp({
             return highestMatch;
         }
 
-        // Initialize on mount
+        // Initialize on mount with ocean ambience and multiplayer
         onMounted(() => {
-            // Wait for location renderer to be initialized by title screen code
-            setTimeout(() => {
-                // Load all canvas images
-                loadLocationCanvases();
-            }, 100);
+            // Initialize existing features
+            // Load all canvas images
+            loadLocationCanvases();
             
             // Generate initial fish
             for (let i = 0; i < 8; i++) {
@@ -1354,13 +1476,22 @@ createApp({
             // Initialize auto-fishing if enabled
             setupAutoFishing();
             
+            // Initialize auto-selling if enabled
+            setupAutoSelling();
+            
             // Initialize encyclopedia
             initializeEncyclopedia();
             
             // Initialize inbox
             initializeInbox();
+            
+            // Initialize ocean ambience effects
+            setupOceanAmbience();
+            
+            // Initialize multiplayer
+            initializeMultiplayer();
         });
-
+        
         // Load game data
         onMounted(() => {
             const savedData = localStorage.getItem('fishingTycoonSave');
@@ -1444,8 +1575,8 @@ createApp({
                         calculatePrestigeBonuses();
                     }
                     
-                    // Setup auto fishing based on loaded data
-                    setupAutoFishing();
+                    // Update multiplayer presence after loading
+                    updatePlayerPresence();
                 } catch (error) {
                     console.error('Error loading save data:', error);
                 }
@@ -1457,6 +1588,14 @@ createApp({
             // Calculate prestige bonuses on initial load
             calculatePrestigeBonuses();
         });
+
+        // Watch for significant state changes to update multiplayer presence
+        watch([
+            money, totalFishCaught, fishingPower, autoFishingRate, 
+            activeLocationId, prestigeLevel
+        ], () => {
+            updatePlayerPresence();
+        }, { deep: true });
 
         // Update save function to include inbox data
         watch([
@@ -1535,6 +1674,7 @@ createApp({
             activeTab,
             changeTab,
             resetProgress,
+            saveAndQuit,
             showOfflineModal,
             offlineEarnings,
             closeOfflineModal,
@@ -1553,50 +1693,12 @@ createApp({
             showInbox,
             toggleInbox,
             markEmailAsRead,
-            showComposeEmail,
-            newEmailContent,
-            newEmailSubject,
-            toggleComposeEmail,
-            sendEmail,
-            template: `
-                <div class="stats">
-                    <div class="stat-item">
-                        <div class="stat-label">
-                            <span class="stat-icon">💸</span>
-                            <span>Money</span>
-                        </div>
-                        <div class="stat-value">{{ formatNumber(money) }}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">
-                            <span class="stat-icon">🎣</span>
-                            <span>Fish Caught</span>
-                        </div>
-                        <div class="stat-value">{{ totalFishCaught }}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">
-                            <span class="stat-icon">🚣</span>
-                            <span>Boat Position</span>
-                        </div>
-                        <div class="stat-value">{{ boatPosition }}%</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">
-                            <span class="stat-icon">🎣</span>
-                            <span>Fishing Power</span>
-                        </div>
-                        <div class="stat-value">{{ fishingPower }}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">
-                            <span class="stat-icon">⏱️</span>
-                            <span>Auto-Fishing</span>
-                        </div>
-                        <div class="stat-value">{{ autoFishingRate.toFixed(2) }}/second</div>
-                    </div>
-                </div>
-            `
+            peers,
+            clientId,
+            showPlayerList,
+            togglePlayerList,
+            getLocationName,
+            otherPlayerFishCaught
         };
     }
 }).mount('#app');

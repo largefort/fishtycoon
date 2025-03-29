@@ -44,22 +44,22 @@ export class LocationRenderer {
   
   // Render the local pond location
   renderPond(ctx, width, height) {
-    // Sky gradient background with more vibrant colors
+    // Sky gradient background
     const skyGradient = ctx.createLinearGradient(0, 0, 0, height * 0.6);
-    skyGradient.addColorStop(0, '#64b5f6');
-    skyGradient.addColorStop(1, '#2196f3');
+    skyGradient.addColorStop(0, '#81d4fa');
+    skyGradient.addColorStop(1, '#4fc3f7');
     ctx.fillStyle = skyGradient;
     ctx.fillRect(0, 0, width, height * 0.6);
     
-    // Water with more vibrant gradient
+    // Water
     const waterGradient = ctx.createLinearGradient(0, height * 0.6, 0, height);
     waterGradient.addColorStop(0, '#29b6f6');
-    waterGradient.addColorStop(1, '#0277bd');
+    waterGradient.addColorStop(1, '#0288d1');
     ctx.fillStyle = waterGradient;
     ctx.fillRect(0, height * 0.6, width, height * 0.4);
     
-    // Draw hills with enhanced colors
-    ctx.fillStyle = '#4caf50';
+    // Draw hills
+    ctx.fillStyle = '#66bb6a';
     ctx.beginPath();
     ctx.moveTo(0, height * 0.6);
     ctx.bezierCurveTo(width * 0.2, height * 0.5, width * 0.3, height * 0.55, width * 0.5, height * 0.6);
@@ -68,17 +68,7 @@ export class LocationRenderer {
     ctx.closePath();
     ctx.fill();
     
-    // Add hill highlights
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.beginPath();
-    ctx.moveTo(0, height * 0.6);
-    ctx.bezierCurveTo(width * 0.2, height * 0.52, width * 0.3, height * 0.57, width * 0.5, height * 0.61);
-    ctx.bezierCurveTo(width * 0.65, height * 0.66, width * 0.8, height * 0.52, width, height * 0.61);
-    ctx.lineTo(width, height * 0.6);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Draw trees with enhanced colors
+    // Draw trees
     this.drawTree(ctx, width * 0.1, height * 0.55, height * 0.15);
     this.drawTree(ctx, width * 0.25, height * 0.53, height * 0.12);
     this.drawTree(ctx, width * 0.7, height * 0.57, height * 0.13);
@@ -95,41 +85,20 @@ export class LocationRenderer {
     this.drawCattail(ctx, width * 0.8, height * 0.67, height * 0.09);
     this.drawCattail(ctx, width * 0.83, height * 0.65, height * 0.11);
     
-    // Draw small pier with enhanced shadows
+    // Draw small pier
     ctx.fillStyle = '#8d6e63';
     ctx.fillRect(width * 0.4, height * 0.6, width * 0.2, height * 0.05);
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(width * 0.4, height * 0.65, width * 0.2, height * 0.01);
     
-    // Draw vibrant sun with glow
+    // Draw sun
     ctx.fillStyle = '#ffeb3b';
     ctx.beginPath();
     ctx.arc(width * 0.8, height * 0.2, 20, 0, Math.PI * 2);
     ctx.fill();
     
-    // Sun glow
-    const sunGlow = ctx.createRadialGradient(width * 0.8, height * 0.2, 20, width * 0.8, height * 0.2, 35);
-    sunGlow.addColorStop(0, 'rgba(255, 235, 59, 0.8)');
-    sunGlow.addColorStop(1, 'rgba(255, 235, 59, 0)');
-    ctx.fillStyle = sunGlow;
-    ctx.beginPath();
-    ctx.arc(width * 0.8, height * 0.2, 35, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Draw enhanced fluffy clouds
+    // Draw clouds
     this.drawCloud(ctx, width * 0.2, height * 0.25, 20);
     this.drawCloud(ctx, width * 0.5, height * 0.15, 25);
     this.drawCloud(ctx, width * 0.7, height * 0.3, 15);
-    
-    // Add subtle water reflections
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.beginPath();
-    ctx.moveTo(width * 0.4, height * 0.65);
-    ctx.lineTo(width * 0.6, height * 0.65);
-    ctx.lineTo(width * 0.55, height * 0.9);
-    ctx.lineTo(width * 0.45, height * 0.9);
-    ctx.closePath();
-    ctx.fill();
   }
   
   // Render the mountain lake location
@@ -387,30 +356,19 @@ export class LocationRenderer {
     }
   }
   
-  // Helper methods to draw elements with enhanced visuals
+  // Helper methods to draw elements
   drawTree(ctx, x, y, size) {
-    // Enhanced trunk with texture
+    // Trunk
     ctx.fillStyle = '#795548';
     ctx.fillRect(x - size/10, y - size, size/5, size);
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(x - size/10 + size/5, y - size, size/15, size);
     
-    // Enhanced leaves with gradient
-    const leafGradient = ctx.createRadialGradient(x, y - size, 0, x, y - size, size/2);
-    leafGradient.addColorStop(0, '#66bb6a');
-    leafGradient.addColorStop(1, '#43a047');
-    ctx.fillStyle = leafGradient;
+    // Leaves
+    ctx.fillStyle = '#43a047';
     ctx.beginPath();
     ctx.arc(x, y - size, size/2, 0, Math.PI * 2);
     ctx.fill();
-    
-    // Add leaf highlights
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    ctx.beginPath();
-    ctx.arc(x - size/6, y - size - size/6, size/3, 0, Math.PI * 2);
-    ctx.fill();
   }
-
+  
   drawPineTree(ctx, x, y, size) {
     // Trunk
     ctx.fillStyle = '#5d4037';
@@ -434,33 +392,15 @@ export class LocationRenderer {
   }
   
   drawLilyPad(ctx, x, y, size) {
-    // Enhanced lily pad with gradient
-    const padGradient = ctx.createRadialGradient(x, y, 0, x, y, size);
-    padGradient.addColorStop(0, '#4caf50');
-    padGradient.addColorStop(1, '#388e3c');
-    ctx.fillStyle = padGradient;
+    ctx.fillStyle = '#388e3c';
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
     ctx.fill();
     
-    // Inner pad with brighter color
     ctx.fillStyle = '#81c784';
     ctx.beginPath();
-    ctx.arc(x, y, size * 0.7, 0, Math.PI * 2);
+    ctx.arc(x, y, size * 0.8, 0, Math.PI * 2);
     ctx.fill();
-    
-    // Add small flower on some lily pads
-    if (Math.random() > 0.5) {
-        ctx.fillStyle = '#f48fb1';
-        ctx.beginPath();
-        ctx.arc(x, y, size * 0.2, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.fillStyle = '#ffeb3b';
-        ctx.beginPath();
-        ctx.arc(x, y, size * 0.1, 0, Math.PI * 2);
-        ctx.fill();
-    }
   }
   
   drawCattail(ctx, x, y, height) {
@@ -502,23 +442,12 @@ export class LocationRenderer {
   }
   
   drawCloud(ctx, x, y, size) {
-    // More dimensional clouds with gradients
-    const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, size);
-    cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-    cloudGradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
-    ctx.fillStyle = cloudGradient;
-    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.beginPath();
     ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
     ctx.arc(x + size * 0.4, y, size * 0.6, 0, Math.PI * 2);
     ctx.arc(x + size * 0.8, y, size * 0.4, 0, Math.PI * 2);
     ctx.arc(x + size * 0.4, y - size * 0.3, size * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Add cloud highlights
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.beginPath();
-    ctx.arc(x - size * 0.1, y - size * 0.1, size * 0.3, 0, Math.PI * 2);
     ctx.fill();
   }
   
