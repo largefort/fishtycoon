@@ -134,13 +134,6 @@ createApp({
         let fishIdCounter = 0;
         let autoFishingInterval = null;
 
-        // Multiplayer state
-        const room = ref(null);
-        const clientId = ref('');
-        const peers = ref({});
-        const showPlayerList = ref(false);
-        const otherPlayerFishCaught = ref([]);
-        
         // Add showSplash for animation
         const showSplash = ref(false);
 
@@ -509,14 +502,6 @@ createApp({
             isFishing.value = true;
             boatPosition.value = Math.random() * 80 + 10; // Random position between 10% and 90%
             
-            // Update presence for multiplayer
-            if (room.value) {
-                room.value.updatePresence({
-                    isFishing: true,
-                    boatPosition: boatPosition.value
-                });
-            }
-            
             // Animate fishing line down
             lineLength.value = 0;
             setTimeout(() => {
@@ -543,12 +528,6 @@ createApp({
                         lineLength.value = 0;
                         setTimeout(() => {
                             isFishing.value = false;
-                            // Update presence for multiplayer
-                            if (room.value) {
-                                room.value.updatePresence({
-                                    isFishing: false
-                                });
-                            }
                         }, 500);
                     }, 500);
                 }, 1000);
@@ -599,7 +578,6 @@ createApp({
         // Catch fish
         function catchFish(isAuto = false) {
             const catchAmount = isAuto ? Math.ceil(autoFishingRate.value) : fishingPower.value;
-            let lastCaught = null;
             
             for (let i = 0; i < catchAmount; i++) {
                 let rand = Math.random();
@@ -615,13 +593,6 @@ createApp({
                         }
                         inventory.value[fish.name]++;
                         totalFishCaught.value++;
-                        
-                        // Track last caught fish for multiplayer updates
-                        lastCaught = {
-                            fishName: fish.name,
-                            value: fish.value,
-                            timestamp: Date.now()
-                        };
                         
                         // Update encyclopedia
                         if (encyclopedia.value[fish.id]) {
@@ -655,16 +626,6 @@ createApp({
                         break;
                     }
                 }
-            }
-            
-            // Broadcast the catch to other players
-            if (lastCaught && room.value) {
-                room.value.updatePresence({
-                    lastCaughtFish: lastCaught
-                });
-                
-                // Update general presence data
-                updatePlayerPresence();
             }
         }
 
@@ -1012,90 +973,6 @@ createApp({
             if (totalFishCount.value === 0) return 0;
             return Math.round((discoveredFishCount.value / totalFishCount.value) * 100);
         });
-
-        // Initialize websim socket
-        async function initializeMultiplayer() {
-            try {
-                room.value = new WebsimSocket();
-                await room.value.initialize();
-                
-                clientId.value = room.value.clientId;
-                
-                // Subscribe to presence updates (player positions, etc.)
-                room.value.subscribePresence((currentPresence) => {
-                    peers.value = room.value.peers;
-                    // Display fish caught notifications for other players
-                    Object.keys(currentPresence).forEach(id => {
-                        if (id !== clientId.value && currentPresence[id].lastCaughtFish) {
-                            const lastCaught = currentPresence[id].lastCaughtFish;
-                            if (lastCaught && lastCaught.timestamp > Date.now() - 2000) { // Only show recent catches
-                                showOtherPlayerCatch(id, lastCaught);
-                            }
-                        }
-                    });
-                });
-                
-                // Subscribe to room state (shared game objects)
-                room.value.subscribeRoomState((currentRoomState) => {
-                    // Handle any room state changes here
-                    // This could be used for global events, shared resources, etc.
-                });
-                
-                // Update your own presence when significant game state changes
-                updatePlayerPresence();
-            } catch (error) {
-                console.error('Failed to initialize multiplayer:', error);
-            }
-        }
-
-        // Update your presence data
-        function updatePlayerPresence() {
-            if (!room.value) return;
-            
-            room.value.updatePresence({
-                money: money.value,
-                totalFishCaught: totalFishCaught.value,
-                fishingPower: fishingPower.value,
-                autoFishingRate: autoFishingRate.value,
-                activeLocationId: activeLocationId.value,
-                isFishing: isFishing.value,
-                boatPosition: boatPosition.value,
-                prestigeLevel: prestigeLevel.value,
-                lastOnline: Date.now()
-            });
-        }
-
-        // Toggle the player list modal
-        function togglePlayerList() {
-            showPlayerList.value = !showPlayerList.value;
-        }
-
-        // Get location name from ID
-        function getLocationName(locationId) {
-            const location = fishingLocations.value.find(loc => loc.id === locationId);
-            return location ? location.name : 'Unknown';
-        }
-
-        // Show other player's catch notification
-        function showOtherPlayerCatch(playerId, catchInfo) {
-            if (!catchInfo) return;
-            
-            const player = peers.value[playerId];
-            if (!player) return;
-            
-            otherPlayerFishCaught.value.push({
-                id: Date.now(),
-                playerId,
-                playerName: player.username,
-                fishName: catchInfo.fishName,
-                value: catchInfo.value
-            });
-            
-            // Remove notification after animation
-            setTimeout(() => {
-                otherPlayerFishCaught.value = otherPlayerFishCaught.value.filter(c => c.id !== catchInfo.id);
-            }, 2000);
-        }
 
         // Reset progress function with enhanced encyclopedia reset
         function resetProgress() {
@@ -1448,7 +1325,7 @@ createApp({
             return highestMatch;
         }
 
-        // Initialize on mount with ocean ambience and multiplayer
+        // Initialize on mount with ocean ambience
         onMounted(() => {
             // Initialize existing features
             // Load all canvas images
@@ -1487,9 +1364,6 @@ createApp({
             
             // Initialize ocean ambience effects
             setupOceanAmbience();
-            
-            // Initialize multiplayer
-            initializeMultiplayer();
         });
         
         // Load game data
@@ -1575,8 +1449,8 @@ createApp({
                         calculatePrestigeBonuses();
                     }
                     
-                    // Update multiplayer presence after loading
-                    updatePlayerPresence();
+                    // Setup auto fishing based on loaded data
+                    setupAutoFishing();
                 } catch (error) {
                     console.error('Error loading save data:', error);
                 }
@@ -1588,14 +1462,6 @@ createApp({
             // Calculate prestige bonuses on initial load
             calculatePrestigeBonuses();
         });
-
-        // Watch for significant state changes to update multiplayer presence
-        watch([
-            money, totalFishCaught, fishingPower, autoFishingRate, 
-            activeLocationId, prestigeLevel
-        ], () => {
-            updatePlayerPresence();
-        }, { deep: true });
 
         // Update save function to include inbox data
         watch([
@@ -1692,13 +1558,7 @@ createApp({
             unreadEmailCount,
             showInbox,
             toggleInbox,
-            markEmailAsRead,
-            peers,
-            clientId,
-            showPlayerList,
-            togglePlayerList,
-            getLocationName,
-            otherPlayerFishCaught
+            markEmailAsRead
         };
     }
 }).mount('#app');

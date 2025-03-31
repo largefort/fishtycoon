@@ -9,7 +9,7 @@
     <script type="importmap">
     {
       "imports": {
-        "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        "vue": "https://cdnjs.cloudflare.com/ajax/libs/vue/3.5.13/vue.esm-browser.min.js"
       }
     }
     </script>
@@ -203,56 +203,9 @@
             </div>
         </div>
         
-        <!-- Multiplayer Player List Modal -->
-        <div class="modal-overlay" v-if="showPlayerList">
-            <div class="modal-content player-list-modal">
-                <div class="modal-header">
-                    <h2>Connected Players</h2>
-                    <button class="modal-close" @click="togglePlayerList">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="player-list">
-                        <div v-for="(peer, peerId) in peers" :key="peerId" class="player-item" :class="{'current-player': peerId === clientId}">
-                            <div class="player-avatar">
-                                <img :src="peer.avatarUrl" alt="Avatar" />
-                            </div>
-                            <div class="player-info">
-                                <div class="player-name">
-                                    {{ peer.username }} 
-                                    <span v-if="peerId === clientId">(You)</span>
-                                    <span v-if="peer.presence && peer.presence.prestigeLevel > 0" class="player-prestige-badge">P{{ peer.presence.prestigeLevel }}</span>
-                                </div>
-                                <div class="player-stats" v-if="peer.presence">
-                                    <div class="player-stat">
-                                        <i class="material-icons">catching_pokemon</i>
-                                        <span>{{ formatNumber(peer.presence.totalFishCaught || 0) }}</span>
-                                    </div>
-                                    <div class="player-stat">
-                                        <i class="material-icons">attach_money</i>
-                                        <span>${{ formatNumber(peer.presence.money || 0) }}</span>
-                                    </div>
-                                    <div class="player-location" v-if="peer.presence.activeLocationId">
-                                        <i class="material-icons">location_on</i>
-                                        <span>{{ getLocationName(peer.presence.activeLocationId) }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="no-players" v-if="Object.keys(peers).length === 0">
-                        <p>No other players are currently online.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         <header>
             <h1>Trawler's Empire <span class="prestige-badge" v-if="prestigeLevel > 0">P{{ prestigeLevel }}</span></h1>
             <div style="display: flex; align-items: center;">
-                <div class="players-icon" @click="togglePlayerList">
-                    <i class="material-icons">people</i>
-                    <div class="players-badge">{{ Object.keys(peers).length }}</div>
-                </div>
                 <div class="inbox-icon" @click="toggleInbox">
                     <i class="material-icons">email</i>
                     <div class="inbox-badge" v-if="unreadEmailCount > 0">{{ unreadEmailCount }}</div>
