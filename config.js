@@ -60,5 +60,52 @@ export const CONFIG = {
       { level: 15, title: "Maritime Emperor" },
       { level: 20, title: "Trawler God" }
     ]
+  },
+  // Seasonal event settings
+  seasonalEvents: {
+    enabled: true,
+    currentSeason: null, // Will be set dynamically
+    seasons: {
+      winter: {
+        name: "Winter",
+        months: [12, 1, 2], // December, January, February
+        fishModifier: "winter",
+        particles: "snow"
+      },
+      spring: {
+        name: "Spring",
+        months: [3, 4, 5], // March, April, May
+        fishModifier: "spring",
+        particles: "petals"
+      },
+      summer: {
+        name: "Summer",
+        months: [6, 7, 8], // June, July, August
+        fishModifier: "summer",
+        particles: "sunshine"
+      },
+      autumn: {
+        name: "Autumn",
+        months: [9, 10, 11], // September, October, November
+        fishModifier: "autumn",
+        particles: "leaves"
+      }
+    },
+    specialEvents: {
+      halloween: {
+        name: "Halloween",
+        month: 10, // October
+        day: 31, // 31st
+        range: 7, // Days before and after
+        fishModifier: "halloween" 
+      },
+      christmas: {
+        name: "Christmas",
+        month: 12, // December
+        day: 25, // 25th
+        range: 7, // Days before and after
+        fishModifier: "christmas"
+      }
+    }
   }
 };

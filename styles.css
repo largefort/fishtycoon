@@ -1403,7 +1403,6 @@ h2 {
     padding: 12px 15px;
     background-color: #f5f5f5;
     border-radius: 8px;
-    font-size: 1.1rem;
 }
 
 .offline-stat i {
@@ -1704,118 +1703,153 @@ h2 {
     margin-right: 15px;
 }
 
-.inbox-icon:hover {
+.seasonal-status {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: all 0.3s;
+    margin-right: 15px;
+    overflow: hidden;
+}
+
+.seasonal-status:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 15px rgba(0,0,0,0.4);
 }
 
-.inbox-icon .inbox-badge {
+.seasonal-status.winter {
+    background: linear-gradient(135deg, #42a5f5, #1565c0);
+}
+
+.seasonal-status.spring {
+    background: linear-gradient(135deg, #66bb6a, #388e3c);
+}
+
+.seasonal-status.summer {
+    background: linear-gradient(135deg, #ffb74d, #f57c00);
+}
+
+.seasonal-status.autumn {
+    background: linear-gradient(135deg, #ff8a65, #d84315);
+}
+
+.seasonal-status.halloween {
+    background: linear-gradient(135deg, #6a1b9a, #4a148c);
+}
+
+.seasonal-status.christmas {
+    background: linear-gradient(135deg, #e53935, #b71c1c);
+}
+
+.seasonal-status-tooltip {
     position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: #f44336;
+    bottom: -45px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
     color: white;
-    border-radius: 50%;
-    width: 22px;
-    height: 22px;
+    padding: 5px 12px;
+    border-radius: 4px;
     font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 10;
 }
 
-.inbox-modal {
-    max-width: 700px;
-    min-height: 450px;
+.seasonal-status:hover .seasonal-status-tooltip {
+    opacity: 1;
 }
 
-@media (max-width: 600px) {
-    #app {
-        padding: 10px;
-    }
-    
-    header {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    h1 {
-        font-size: 1.5rem;
-    }
-    
-    .currency {
-        font-size: 1.4rem;
-    }
-    
-    .water {
-        height: 300px;
-    }
-    
-    .upgrade-list {
-        grid-template-columns: 1fr;
-    }
-    
-    .controls button {
-        padding: 15px 25px;
-        width: 100%;
-        max-width: 250px;
-    }
-    
-    .upgrade-item {
-        padding: 15px;
-    }
-    
-    .stats, .inventory {
-        padding: 15px;
-    }
-    
-    .fishing-spot-selector {
-        margin-bottom: 15px;
-    }
-    
-    .location-card {
-        min-width: 160px;
-        padding: 10px;
-    }
-    
-    .location-image {
-        height: 80px;
-    }
-    
-    .boat-parts {
-        grid-template-columns: 1fr;
-    }
-    
-    .encyclopedia-content {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 15px;
-    }
-    
-    .fish-details {
-        padding: 8px;
-    }
-    
-    .modal-content {
-        width: 95%;
-    }
+.seasonal-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
 }
 
-@media (max-width: 400px) {
-    .stat-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-    
-    .inventory-item {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .inventory-item button {
-        width: 100%;
-    }
+.seasonal-particle.snow {
+    background-color: white;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}
+
+.seasonal-particle.leaf {
+    clip-path: ellipse(50% 50% at 50% 50%); /* Simple leaf shape */
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.seasonal-particle.petal {
+    clip-path: ellipse(40% 50% at 50% 50%); /* Simple petal shape */
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
+}
+
+.seasonal-sun {
+    position: absolute;
+    top: 50px;
+    right: 50px;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, #FFD700, #FF9800);
+    border-radius: 50%;
+    z-index: 1;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+    animation: sun-pulse 5s infinite ease-in-out;
+}
+
+.sun-ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 2px;
+    background: rgba(255, 215, 0, 0.6);
+    transform-origin: 0 0;
+    animation: ray-pulse 3s infinite ease-in-out;
+}
+
+@keyframes sun-pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+@keyframes ray-pulse {
+    0% { opacity: 0.6; width: 40px; }
+    50% { opacity: 1; width: 50px; }
+    100% { opacity: 0.6; width: 40px; }
+}
+
+.halloween-water {
+    background: linear-gradient(to bottom, #4a148c, #6a1b9a, #4a1691) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100' fill-opacity='0.05'%3E%3Cpath d='M0,50 Q25,25 50,50 Q75,75 100,50' stroke='%23ffffff' stroke-width='1'/%3E%3C/svg%3E") !important;
+}
+
+.christmas-water {
+    background: linear-gradient(to bottom, #1e88e5, #0d47a1) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100' fill-opacity='0.05'%3E%3Ccircle cx='25' cy='25' r='1' fill='%23ffffff'/%3E%3Ccircle cx='75' cy='75' r='1' fill='%23ffffff'/%3E%3Ccircle cx='75' cy='25' r='1' fill='%23ffffff'/%3E%3Ccircle cx='25' cy='75' r='1' fill='%23ffffff'/%3E%3C/svg%3E") !important;
+}
+
+.winter-water {
+    background: linear-gradient(to bottom, #64b5f6, #1976d2) !important;
+}
+
+.summer-water {
+    background: linear-gradient(to bottom, #03a9f4, #0288d1) !important;
+}
+
+.autumn-water {
+    background: linear-gradient(to bottom, #26a69a, #00796b) !important;
+}
+
+.spring-water {
+    background: linear-gradient(to bottom, #4caf50, #2e7d32) !important;
 }
 
 footer {
@@ -2095,4 +2129,92 @@ footer {
 .medal-diamond {
     background: linear-gradient(135deg, #e1f5fe, #4fc3f7);
     box-shadow: 0 0 10px #29b6f6;
+}
+
+@media (max-width: 600px) {
+    #app {
+        padding: 10px;
+    }
+    
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .currency {
+        font-size: 1.4rem;
+    }
+    
+    .water {
+        height: 300px;
+    }
+    
+    .upgrade-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .controls button {
+        padding: 15px 25px;
+        width: 100%;
+        max-width: 250px;
+    }
+    
+    .upgrade-item {
+        padding: 15px;
+    }
+    
+    .stats, .inventory {
+        padding: 15px;
+    }
+    
+    .fishing-spot-selector {
+        margin-bottom: 15px;
+    }
+    
+    .location-card {
+        min-width: 160px;
+        padding: 10px;
+    }
+    
+    .location-image {
+        height: 80px;
+    }
+    
+    .boat-parts {
+        grid-template-columns: 1fr;
+    }
+    
+    .encyclopedia-content {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+    }
+    
+    .fish-details {
+        padding: 8px;
+    }
+    
+    .modal-content {
+        width: 95%;
+    }
+}
+
+@media (max-width: 400px) {
+    .stat-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .inventory-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .inventory-item button {
+        width: 100%;
+    }
 }

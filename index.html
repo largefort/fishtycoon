@@ -206,6 +206,20 @@
         <header>
             <h1>Trawler's Empire <span class="prestige-badge" v-if="prestigeLevel > 0">P{{ prestigeLevel }}</span></h1>
             <div style="display: flex; align-items: center;">
+                <div class="seasonal-status" v-if="currentSeason || currentSpecialEvent" 
+                     :class="currentSpecialEvent || currentSeason">
+                    <i class="material-icons" v-if="currentSpecialEvent === 'halloween'">pets</i>
+                    <i class="material-icons" v-else-if="currentSpecialEvent === 'christmas'">ac_unit</i>
+                    <i class="material-icons" v-else-if="currentSeason === 'winter'">ac_unit</i>
+                    <i class="material-icons" v-else-if="currentSeason === 'spring'">local_florist</i>
+                    <i class="material-icons" v-else-if="currentSeason === 'summer'">wb_sunny</i>
+                    <i class="material-icons" v-else-if="currentSeason === 'autumn'">eco</i>
+                    <div class="seasonal-status-tooltip">
+                        <span v-if="currentSpecialEvent === 'halloween'">Halloween Event</span>
+                        <span v-else-if="currentSpecialEvent === 'christmas'">Christmas Event</span>
+                        <span v-else-if="currentSeason">{{ CONFIG.seasonalEvents.seasons[currentSeason].name }} Season</span>
+                    </div>
+                </div>
                 <div class="inbox-icon" @click="toggleInbox">
                     <i class="material-icons">email</i>
                     <div class="inbox-badge" v-if="unreadEmailCount > 0">{{ unreadEmailCount }}</div>
@@ -363,6 +377,20 @@
                         <div class="seaweed" style="left: 65%; height: 85px; width: 14px; animation-delay: 0.9s;"></div>
                         <div class="seaweed" style="left: 75%; height: 100px; width: 13px; animation-delay: 1.2s;"></div>
                         <div class="seaweed" style="left: 85%; height: 70px; width: 9px; animation-delay: 0.7s;"></div>
+                        
+                        <!-- Seasonal particles -->
+                        <div v-for="particle in seasonalParticles" :key="particle.id" class="seasonal-particle" 
+                             :class="particle.type"
+                             :style="{ 
+                                 left: particle.x + '%', 
+                                 top: particle.y + '%', 
+                                 width: particle.size + 'px', 
+                                 height: particle.size + 'px',
+                                 backgroundColor: particle.color || 'white',
+                                 opacity: particle.opacity,
+                                 transform: `rotate(${particle.rotation}deg)`
+                             }">
+                        </div>
                         
                         <!-- Fish in water with enhanced SVG -->
                         <template v-for="fish in fishInWater" :key="fish.id">

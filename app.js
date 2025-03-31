@@ -203,7 +203,7 @@ createApp({
                             <li>Ghost Catfish - A mythical river species that few have seen</li>
                             <li>Anglerfish, Electric Eel, and more in the deep ocean!</li>
                         </ul>
-                        <p>Update your Fish Encyclopedia with these new species to earn additional prestige!</p>
+                        <p>Update your Fish Encyclopedia to track your collection progress.</p>
                         <p>Happy fishing!</p>
                         <p>- Jafet Egill<br>Game Developer</p>
                     `,
@@ -920,10 +920,334 @@ createApp({
             }
         }
 
-        // Get fish color by type
+        // Add seasonal event state
+        const currentSeason = ref(null);
+        const currentSpecialEvent = ref(null);
+        const seasonalParticles = ref([]);
+        const showSun = ref(false);
+
+        // Determine current season and special events
+        function detectSeasonalEvents() {
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
+            const currentDay = now.getDate();
+            
+            // Detect season
+            let detectedSeason = null;
+            Object.entries(CONFIG.seasonalEvents.seasons).forEach(([seasonId, season]) => {
+                if (season.months.includes(currentMonth)) {
+                    detectedSeason = seasonId;
+                }
+            });
+            currentSeason.value = detectedSeason;
+            
+            // Detect special events
+            let detectedEvent = null;
+            Object.entries(CONFIG.seasonalEvents.specialEvents).forEach(([eventId, event]) => {
+                if (event.month === currentMonth) {
+                    // Check if we're within the event range
+                    const eventDate = new Date(now.getFullYear(), event.month - 1, event.day);
+                    const diffTime = Math.abs(now - eventDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays <= event.range) {
+                        detectedEvent = eventId;
+                    }
+                }
+            });
+            currentSpecialEvent.value = detectedEvent;
+            
+            // Apply seasonal effects
+            if (CONFIG.seasonalEvents.enabled) {
+                applySeasonalEffects();
+            }
+            
+            // Add special event notification to inbox if it just started
+            if (detectedEvent && emails.value.findIndex(e => e.id === `event-${detectedEvent}`) === -1) {
+                addSeasonalEventEmail(detectedEvent);
+            }
+        }
+        
+        // Apply visual effects based on current season
+        function applySeasonalEffects() {
+            // Clear existing particles
+            seasonalParticles.value = [];
+            
+            if (!currentSeason.value) return;
+            
+            const season = CONFIG.seasonalEvents.seasons[currentSeason.value];
+            
+            // Handle seasonal particles
+            if (season.particles === "snow") {
+                createSnowParticles();
+            } else if (season.particles === "leaves") {
+                createLeafParticles();
+            } else if (season.particles === "petals") {
+                createPetalParticles();
+            } else if (season.particles === "sunshine") {
+                showSun.value = true;
+                createSunshineEffect();
+            } else {
+                showSun.value = false;
+            }
+        }
+        
+        // Create snow particles
+        function createSnowParticles() {
+            const particleCount = window.innerWidth <= 600 ? 30 : 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                seasonalParticles.value.push({
+                    id: `snow-${i}`,
+                    type: 'snow',
+                    x: Math.random() * 100, // %
+                    y: -10 - Math.random() * 10, // Start above screen
+                    size: Math.random() * 5 + 2,
+                    speed: Math.random() * 2 + 1,
+                    opacity: Math.random() * 0.7 + 0.3,
+                    rotation: Math.random() * 360
+                });
+            }
+            
+            // Animate snow particles
+            animateParticles();
+        }
+        
+        // Create leaf particles for autumn
+        function createLeafParticles() {
+            const particleCount = window.innerWidth <= 600 ? 20 : 40;
+            const colors = ['#FF5722', '#FF9800', '#FFC107', '#8D6E63', '#795548'];
+            
+            for (let i = 0; i < particleCount; i++) {
+                seasonalParticles.value.push({
+                    id: `leaf-${i}`,
+                    type: 'leaf',
+                    x: Math.random() * 100, // %
+                    y: -10 - Math.random() * 10, // Start above screen
+                    size: Math.random() * 8 + 5,
+                    speed: Math.random() * 1.5 + 1,
+                    opacity: Math.random() * 0.7 + 0.3,
+                    rotation: Math.random() * 360,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotationSpeed: (Math.random() - 0.5) * 4
+                });
+            }
+            
+            // Animate leaf particles
+            animateParticles();
+        }
+        
+        // Create petal particles for spring
+        function createPetalParticles() {
+            const particleCount = window.innerWidth <= 600 ? 20 : 40;
+            const colors = ['#FFCDD2', '#F8BBD0', '#E1BEE7', '#D1C4E9', '#FFFFFF'];
+            
+            for (let i = 0; i < particleCount; i++) {
+                seasonalParticles.value.push({
+                    id: `petal-${i}`,
+                    type: 'petal',
+                    x: Math.random() * 100, // %
+                    y: -10 - Math.random() * 10, // Start above screen
+                    size: Math.random() * 6 + 3,
+                    speed: Math.random() * 1.5 + 0.8,
+                    opacity: Math.random() * 0.7 + 0.3,
+                    rotation: Math.random() * 360,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotationSpeed: (Math.random() - 0.5) * 3
+                });
+            }
+            
+            // Animate petal particles
+            animateParticles();
+        }
+        
+        // Create sunshine effect for summer
+        function createSunshineEffect() {
+            const waterElement = document.querySelector('.water');
+            if (!waterElement) return;
+            
+            // Add sun element if it doesn't exist
+            let sunElement = document.querySelector('.seasonal-sun');
+            if (!sunElement) {
+                sunElement = document.createElement('div');
+                sunElement.className = 'seasonal-sun';
+                waterElement.appendChild(sunElement);
+                
+                // Create rays
+                for (let i = 0; i < 12; i++) {
+                    const ray = document.createElement('div');
+                    ray.className = 'sun-ray';
+                    ray.style.transform = `rotate(${i * 30}deg)`;
+                    sunElement.appendChild(ray);
+                }
+            }
+        }
+        
+        // Animate particles
+        function animateParticles() {
+            if (seasonalParticles.value.length === 0) return;
+            
+            const animationInterval = setInterval(() => {
+                seasonalParticles.value.forEach(particle => {
+                    // Update particle position
+                    particle.y += particle.speed;
+                    
+                    // Apply wind effect for more natural movement
+                    if (particle.type === 'snow' || particle.type === 'leaf' || particle.type === 'petal') {
+                        particle.x += Math.sin(Date.now() / 1000 + particle.id.charCodeAt(0)) * 0.2;
+                        
+                        // Update rotation for leaves and petals
+                        if (particle.type === 'leaf' || particle.type === 'petal') {
+                            particle.rotation += particle.rotationSpeed;
+                        }
+                    }
+                    
+                    // Remove particles that go off-screen
+                    if (particle.y > 110) {
+                        const index = seasonalParticles.value.findIndex(p => p.id === particle.id);
+                        if (index !== -1) {
+                            // Create a new particle to replace this one
+                            const newParticle = { ...particle };
+                            newParticle.y = -10 - Math.random() * 10;
+                            newParticle.x = Math.random() * 100;
+                            seasonalParticles.value.splice(index, 1, newParticle);
+                        }
+                    }
+                });
+            }, 50);
+            
+            // Clean up interval when switching seasons
+            return () => clearInterval(animationInterval);
+        }
+        
+        // Add seasonal event notification to inbox
+        function addSeasonalEventEmail(eventId) {
+            const event = CONFIG.seasonalEvents.specialEvents[eventId];
+            
+            addEmail({
+                id: `event-${eventId}`,
+                subject: `${event.name} Event Started!`,
+                sender: CONFIG.inboxSystem.defaultSender,
+                senderEmail: CONFIG.inboxSystem.senderEmail,
+                date: new Date().toLocaleDateString(),
+                content: `
+                    <p>Ahoy, Captain!</p>
+                    <p>The ${event.name} celebrations have begun! For a limited time, enjoy special themed fish and festive atmosphere.</p>
+                    ${eventId === 'halloween' ? `
+                    <p>Strange energies have transformed the fish into spooky versions of themselves. Can you catch them all before they return to normal?</p>
+                    <p>🎃 Happy Halloween! 🎃</p>
+                    ` : eventId === 'christmas' ? `
+                    <p>The fish have gotten into the holiday spirit and are wearing festive hats! Catch these special variants for bonus rewards.</p>
+                    <p>🎄 Merry Christmas! 🎄</p>
+                    ` : ''}
+                    <p>Happy fishing!</p>
+                    <p>- Jafet Egill<br>Game Developer</p>
+                `,
+                read: false
+            });
+        }
+        
+        // Get season-modified fish color
+        function getSeasonalFishColor(fishColor) {
+            if (!CONFIG.seasonalEvents.enabled) return fishColor;
+            
+            // If there's a special event active, it takes precedence
+            if (currentSpecialEvent.value === 'halloween') {
+                // Spooky colors for Halloween
+                return addHalloweenEffect(fishColor);
+            } else if (currentSpecialEvent.value === 'christmas') {
+                // No color change for Christmas, but we'll add hats in the fish rendering
+                return fishColor;
+            }
+            
+            // Otherwise use seasonal modifications
+            if (currentSeason.value === 'winter') {
+                // More blue-ish tint for winter
+                return adjustColorShade(fishColor, 'blue', 0.2);
+            } else if (currentSeason.value === 'autumn') {
+                // More orange/brown tint for autumn
+                return adjustColorShade(fishColor, 'orange', 0.2);
+            }
+            
+            return fishColor;
+        }
+        
+        // Add Halloween effect to fish color
+        function addHalloweenEffect(color) {
+            // Make colors more orange, purple, green, or black
+            const halloweenColors = ['#FF6D00', '#6A1B9A', '#388E3C', '#212121'];
+            // We'll keep some resemblance to original color but shift toward Halloween palette
+            return halloweenColors[Math.floor(Math.random() * halloweenColors.length)];
+        }
+        
+        // Adjust color shade
+        function adjustColorShade(color, tint, amount) {
+            // Simple color adjustment - in a full implementation,
+            // this would use proper color manipulation
+            if (tint === 'blue') {
+                return color; // For simplicity, return original color for now
+            } else if (tint === 'orange') {
+                return color; // For simplicity, return original color for now
+            }
+            return color;
+        }
+        
+        // Fish rendering with seasonal modifications
+        function renderSeasonalFish(ctx, fish, x, y, width, height) {
+            // Base fish rendering
+            ctx.fillStyle = getSeasonalFishColor(fish.color);
+            
+            // Fish body
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.bezierCurveTo(x + width * 0.4, y - height * 0.5, x + width * 0.4, y + height * 0.5, x, y);
+            ctx.bezierCurveTo(x + width * 0.8, y, x + width * 0.8, y, x + width, y);
+            ctx.fill();
+            
+            // Fish eye
+            ctx.fillStyle = "#000";
+            ctx.beginPath();
+            ctx.arc(x + width * 0.8, y, height * 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Special event accessories
+            if (CONFIG.seasonalEvents.enabled) {
+                if (currentSpecialEvent.value === 'christmas') {
+                    // Add Santa hat
+                    ctx.fillStyle = "#FF0000"; // Red hat
+                    ctx.beginPath();
+                    ctx.moveTo(x + width * 0.7, y - height * 0.2);
+                    ctx.lineTo(x + width * 0.9, y - height * 0.5);
+                    ctx.lineTo(x + width * 1.0, y - height * 0.2);
+                    ctx.fill();
+                    
+                    // White trim
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.beginPath();
+                    ctx.ellipse(x + width * 0.85, y - height * 0.2, width * 0.15, height * 0.1, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Pom-pom
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.beginPath();
+                    ctx.arc(x + width * 0.9, y - height * 0.5, height * 0.1, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (currentSpecialEvent.value === 'halloween') {
+                    // Maybe add small witch hat or spooky eyes
+                    // Spooky eyes
+                    ctx.fillStyle = "#FF5722"; // Orange glowing eyes
+                    ctx.beginPath();
+                    ctx.arc(x + width * 0.8, y, height * 0.1, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        // Get fish color by type with seasonal modifications
         function getFishColor(type) {
             const fishType = currentFishTypes.value.find(fish => fish.name === type);
-            return fishType ? fishType.color : "#6495ED";
+            const baseColor = fishType ? fishType.color : "#6495ED";
+            return getSeasonalFishColor(baseColor);
         }
 
         // Toggle encyclopedia view
@@ -1364,6 +1688,16 @@ createApp({
             
             // Initialize ocean ambience effects
             setupOceanAmbience();
+            
+            // Initialize seasonal events
+            if (CONFIG.seasonalEvents.enabled) {
+                detectSeasonalEvents();
+                
+                // Update seasonal events once per day
+                setInterval(() => {
+                    detectSeasonalEvents();
+                }, 1000 * 60 * 60); // Check every hour
+            }
         });
         
         // Load game data
@@ -1558,7 +1892,11 @@ createApp({
             unreadEmailCount,
             showInbox,
             toggleInbox,
-            markEmailAsRead
+            markEmailAsRead,
+            currentSeason,
+            currentSpecialEvent,
+            seasonalParticles,
+            showSun
         };
     }
 }).mount('#app');
