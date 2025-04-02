@@ -19,11 +19,36 @@
             font-family: Arial, sans-serif;
         }
         
+        .steam-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .steam-header {
+            background: linear-gradient(to right, #171a21, #1b2838);
+            color: #c7d5e0;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .steam-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
         .game-container {
             flex: 1;
             width: 100%;
             height: calc(100% - 40px);
             position: relative;
+            overflow: hidden;
         }
         
         iframe {
@@ -31,6 +56,33 @@
             height: 100%;
             border: none;
             background-color: white;
+            position: absolute;
+            transform-origin: top left;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .controls label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 150px;
+        }
+        
+        .controls input {
+            width: 60px;
         }
         
         .mobile-warning {
@@ -58,12 +110,24 @@
             .mobile-warning h2 {
                 margin-bottom: 20px;
             }
+            
+            .controls {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="steam-container">
+        <div class="steam-header">
+            <div class="steam-title">Trawler's Empire</div>
+        </div>
         <div class="game-container">
-            <iframe src="main.html" allowfullscreen></iframe>
+            <iframe id="game-frame" src="main.html" allowfullscreen></iframe>
+            <div class="controls">
+                <label>X Position: <input type="number" id="x-pos" value="0" min="-100" max="100"></label>
+                <label>Y Position: <input type="number" id="y-pos" value="0" min="-100" max="100"></label>
+            </div>
             <div class="mobile-warning">
                 <h2>Desktop Only</h2>
                 <p>Trawler's Empire Steam Edition is designed for desktop and PC use only.</p>
@@ -71,6 +135,22 @@
             </div>
         </div>
     </div>
+    
+    <script>
+        // Position control for the iframe
+        const iframe = document.getElementById('game-frame');
+        const xPosInput = document.getElementById('x-pos');
+        const yPosInput = document.getElementById('y-pos');
+        
+        function updatePosition() {
+            const xPos = xPosInput.value;
+            const yPos = yPosInput.value;
+            iframe.style.transform = `translate(${xPos}px, ${yPos}px)`;
+        }
+        
+        xPosInput.addEventListener('input', updatePosition);
+        yPosInput.addEventListener('input', updatePosition);
+    </script>
 </body>
 </html>
 
