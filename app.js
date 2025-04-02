@@ -1,4 +1,4 @@
-import { createApp, ref, computed, watch, onMounted, reactive } from 'vue';
+import { createApp, ref, computed, watch, onMounted, onUnmounted, reactive } from 'vue';
 import { CONFIG } from './config.js';
 import { LocationRenderer } from './location-renderer.js';
 
@@ -128,11 +128,70 @@ createApp({
         const isFishing = ref(false);
         const lineLength = ref(0);
         const boatPosition = ref(50);
+        const boatVerticalPosition = ref(40);
         const fishInWater = ref([]);
         const autoFishingActive = ref(false);
         const autoFishingTimer = ref(null);
         let fishIdCounter = 0;
         let autoFishingInterval = null;
+        let waterlineCanvas = null;
+        let waterlineCtx = null;
+        let waterlineAnimationId = null;
+        let waveOffset = 0;
+
+        // Define upgrades early to avoid reference error
+        const upgrades = ref([
+            {
+                id: 'rod',
+                name: 'Fishing Rod',
+                description: 'Increases fishing power (fish per cast)',
+                level: 1,
+                maxLevel: null,
+                getCost: (level) => Math.floor(50 * Math.pow(1.5, level - 1)),
+                get cost() { return this.getCost(this.level); },
+                getEffect: (level) => level
+            },
+            {
+                id: 'bait',
+                name: 'Premium Bait',
+                description: 'Increases fishing power and attracts rarer fish',
+                level: 0,
+                maxLevel: 10,
+                getCost: (level) => Math.floor(100 * Math.pow(2, level)),
+                get cost() { return this.getCost(this.level); },
+                getEffect: (level) => level * 0.5
+            },
+            {
+                id: 'lure',
+                name: 'Special Lure',
+                description: 'Catches more fish per cast',
+                level: 1,
+                maxLevel: 10,
+                getCost: (level) => Math.floor(75 * Math.pow(1.8, level - 1)),
+                get cost() { return this.getCost(this.level); },
+                getEffect: (level) => level * 0.5
+            },
+            {
+                id: 'autoFisher',
+                name: 'Auto-Fisher',
+                description: 'Automatically fishes over time',
+                level: 0,
+                maxLevel: 10,
+                getCost: (level) => Math.floor(500 * Math.pow(2, level)),
+                get cost() { return this.getCost(this.level); },
+                getEffect: (level) => level * 0.1
+            },
+            {
+                id: 'merchant',
+                name: 'Fish Merchant',
+                description: 'Automatically sells 5% of your fish every few seconds',
+                level: 0,
+                maxLevel: 1,
+                getCost: (level) => 2000,
+                get cost() { return this.getCost(this.level); },
+                getEffect: (level) => level
+            }
+        ]);
 
         // Add showSplash for animation
         const showSplash = ref(false);
@@ -495,6 +554,173 @@ createApp({
             }
         }
 
+        // Add skills system state
+        const totalXP = ref(0);
+        const lastXpGain = ref(0);
+        const fishingSkills = ref([]);
+        const totalSkillsLevel = ref(0);
+        const xpGainTimeoutId = ref(null);
+
+        // Initialize fishing skills system
+        function initializeSkillsSystem() {
+            if (!CONFIG.skillsSystem || !CONFIG.skillsSystem.enabled) return;
+            
+            // Initialize each skill from config
+            fishingSkills.value = CONFIG.skillsSystem.skills.map(skillConfig => ({
+                id: skillConfig.id,
+                name: skillConfig.name,
+                description: skillConfig.description,
+                level: 1,
+                xp: 0,
+                nextLevelXp: skillConfig.xpToLevelUp(1),
+                maxLevel: skillConfig.maxLevel,
+                bonusPerLevel: skillConfig.bonusPerLevel
+            }));
+            
+            // Calculate total skills level
+            calculateTotalSkillsLevel();
+        }
+        
+        // Calculate total skill level (sum of all skill levels)
+        function calculateTotalSkillsLevel() {
+            totalSkillsLevel.value = fishingSkills.value.reduce((sum, skill) => sum + skill.level, 0);
+        }
+        
+        // Get skill icon based on skill ID
+        function getSkillIcon(skillId) {
+            const icons = {
+                casting: 'gps_fixed',
+                efficiency: 'speed',
+                luck: 'casino',
+                knowledge: 'psychology',
+                patience: 'hourglass_top',
+                automation: 'settings_remote'
+            };
+            return icons[skillId] || 'star';
+        }
+        
+        // Award XP for catching fish
+        function awardFishingXP(fishType) {
+            if (!CONFIG.skillsSystem || !CONFIG.skillsSystem.enabled) return;
+            
+            // Get fish rarity for XP multiplier
+            const fishRarity = getRarityName(fishType.chance);
+            const rarityMultiplier = CONFIG.skillsSystem.xpMultiplierByRarity[fishRarity] || 1;
+            
+            // Get base XP per fish
+            const baseXP = CONFIG.skillsSystem.xpPerFish;
+            
+            // Calculate XP with rarity bonus
+            let xpGain = baseXP * rarityMultiplier;
+            
+            // Apply patience skill bonus if available
+            const patienceSkill = fishingSkills.value.find(skill => skill.id === 'patience');
+            if (patienceSkill) {
+                const patienceBonus = 1 + (patienceSkill.level * patienceSkill.bonusPerLevel);
+                xpGain *= patienceBonus;
+            }
+            
+            // Round to nearest integer
+            xpGain = Math.round(xpGain);
+            
+            // Add XP to total
+            totalXP.value += xpGain;
+            
+            // Show XP gain
+            lastXpGain.value = xpGain;
+            
+            // Clear previous timeout if exists
+            if (xpGainTimeoutId.value) {
+                clearTimeout(xpGainTimeoutId.value);
+            }
+            
+            // Set timeout to clear XP gain display
+            xpGainTimeoutId.value = setTimeout(() => {
+                lastXpGain.value = 0;
+            }, 3000);
+            
+            // Distribute XP to a random skill
+            const randomSkillIndex = Math.floor(Math.random() * fishingSkills.value.length);
+            const skill = fishingSkills.value[randomSkillIndex];
+            
+            // Add XP to skill
+            skill.xp += xpGain;
+            
+            // Check for level up
+            checkSkillLevelUp(skill);
+        }
+        
+        // Check if a skill can level up
+        function checkSkillLevelUp(skill) {
+            // Check if skill has enough XP and is not at max level
+            if (skill.xp >= skill.nextLevelXp && skill.level < skill.maxLevel) {
+                // Level up
+                skill.level++;
+                
+                // Subtract XP used for leveling
+                skill.xp -= skill.nextLevelXp;
+                
+                // Calculate XP for next level
+                const skillConfig = CONFIG.skillsSystem.skills.find(s => s.id === skill.id);
+                skill.nextLevelXp = skillConfig.xpToLevelUp(skill.level);
+                
+                // Update total skills level
+                calculateTotalSkillsLevel();
+                
+                // Apply skill effects
+                applySkillEffects();
+                
+                // Show level up notification
+                showSkillLevelUpNotification(skill);
+                
+                // Check if can level up again (if has enough XP)
+                checkSkillLevelUp(skill);
+            }
+        }
+        
+        // Apply skill effects based on current levels
+        function applySkillEffects() {
+            fishingSkills.value.forEach(skill => {
+                switch (skill.id) {
+                    case 'casting':
+                        // Affects fishing power
+                        updateFishingPowerFromSkills();
+                        break;
+                    case 'knowledge':
+                        // Affects fish value - applied when selling
+                        break;
+                    case 'luck':
+                        // Affects rare fish chance - applied when catching
+                        break;
+                    case 'efficiency':
+                        // Affects fishing speed - applied when fishing
+                        break;
+                    case 'patience':
+                        // Affects XP gain - applied when gaining XP
+                        break;
+                    case 'automation':
+                        // Affects auto-fishing rate
+                        updateAutoFishingRateFromSkills();
+                        break;
+                }
+            });
+        }
+        
+        // Update fishing power based on casting skill
+        function updateFishingPowerFromSkills() {
+            const castingSkill = fishingSkills.value.find(skill => skill.id === 'casting');
+            if (!castingSkill) return;
+            
+            // Get base fishing power (from upgrades and prestige)
+            const baseFishingPower = 1 + prestigeBonuses.fishingPower;
+            
+            // Calculate bonus from casting skill
+            const castingBonus = castingSkill.level * castingSkill.bonusPerLevel;
+            
+            // Update fishing power with skill bonus
+            fishingPower.value = baseFishingPower * (1 + castingBonus);
+        }
+
         // Start fishing with improved animations
         function startFishing() {
             if (isFishing.value) return;
@@ -504,6 +730,11 @@ createApp({
             
             // Animate fishing line down
             lineLength.value = 0;
+            
+            // Apply efficiency skill to fishing time
+            const baseDelay = 500;
+            const modifiedDelay = getSkillModifiedFishingTime(baseDelay);
+            
             setTimeout(() => {
                 // Adjust line length for mobile
                 const maxDepth = window.innerWidth <= 600 ? 200 : 300;
@@ -520,18 +751,22 @@ createApp({
                 }, 1000);
                 
                 // Catch fish after line is fully extended
+                // Apply efficiency skill to this delay as well
+                const catchDelay = getSkillModifiedFishingTime(1000);
+                
                 setTimeout(() => {
                     catchFish();
                     
                     // Reel in the line
+                    const reelDelay = getSkillModifiedFishingTime(500);
                     setTimeout(() => {
                         lineLength.value = 0;
                         setTimeout(() => {
                             isFishing.value = false;
-                        }, 500);
-                    }, 500);
-                }, 1000);
-            }, 500);
+                        }, reelDelay);
+                    }, reelDelay);
+                }, catchDelay);
+            }, modifiedDelay);
         }
         
         // Create water particles for splash effect
@@ -543,6 +778,17 @@ createApp({
             const boatRect = boatElement.getBoundingClientRect();
             const splashX = boatRect.left + boatRect.width / 2;
             const splashY = boatRect.top + lineLength.value;
+            
+            // Add cinematic splash glow
+            const splashGlow = document.createElement('div');
+            splashGlow.className = 'water-splash-glow';
+            splashGlow.style.left = `${splashX}px`;
+            splashGlow.style.top = `${splashY}px`;
+            splashContainer.appendChild(splashGlow);
+            
+            setTimeout(() => {
+                splashGlow.remove();
+            }, 1500);
             
             for (let i = 0; i < 12; i++) {
                 const particle = document.createElement('div');
@@ -583,8 +829,24 @@ createApp({
                 let rand = Math.random();
                 let cumulativeChance = 0;
                 
-                for (const fish of currentFishTypes.value) {
-                    cumulativeChance += fish.chance;
+                // Apply luck skill to adjust chances
+                const adjustedFishTypes = currentFishTypes.value.map(fish => {
+                    // Create a copy of the fish with adjusted chance
+                    return {
+                        ...fish,
+                        adjustedChance: applyLuckSkillToFishChance(fish)
+                    };
+                });
+                
+                // Normalize chances
+                const totalChance = adjustedFishTypes.reduce((sum, fish) => sum + fish.adjustedChance, 0);
+                const normalizedFishTypes = adjustedFishTypes.map(fish => ({
+                    ...fish,
+                    normalizedChance: fish.adjustedChance / totalChance
+                }));
+                
+                for (const fish of normalizedFishTypes) {
+                    cumulativeChance += fish.normalizedChance;
                     
                     if (rand <= cumulativeChance) {
                         // Add fish to inventory
@@ -620,6 +882,9 @@ createApp({
                             }
                         }
                         
+                        // Award XP for catching fish
+                        awardFishingXP(fish);
+                        
                         // Force Vue to recognize the change
                         inventory.value = { ...inventory.value };
                         encyclopedia.value = { ...encyclopedia.value };
@@ -635,8 +900,15 @@ createApp({
                 const fishType = currentFishTypes.value.find(fish => fish.name === type);
                 if (fishType) {
                     // Apply prestige bonus to fish value
-                    const valueMultiplier = 1 + prestigeBonuses.fishValue;
-                    const value = Math.floor(fishType.value * inventory.value[type] * valueMultiplier);
+                    const prestigeMultiplier = 1 + prestigeBonuses.fishValue;
+                    
+                    // Apply knowledge skill bonus
+                    const baseValue = fishType.value * inventory.value[type];
+                    const valueWithSkill = applyFishValueSkillBonus(baseValue);
+                    
+                    // Apply final value with prestige bonus
+                    const value = Math.floor(valueWithSkill * prestigeMultiplier);
+                    
                     money.value += value;
                     inventory.value[type] = 0;
                     
@@ -644,130 +916,6 @@ createApp({
                     inventory.value = { ...inventory.value };
                 }
             }
-        }
-
-        // Purchase upgrade
-        function purchaseUpgrade(id) {
-            const upgrade = upgrades.value.find(u => u.id === id);
-            
-            if (upgrade && money.value >= upgrade.cost) {
-                money.value -= upgrade.cost;
-                upgrade.level++;
-                upgrade.effect();
-                
-                // Update cost for next level
-                upgrade.cost = upgrade.getCost(upgrade.level);
-            }
-        }
-
-        // Upgrades
-        const upgrades = ref([
-            {
-                id: 'rod',
-                name: 'Better Fishing Rod',
-                description: 'Catch more fish per cast',
-                level: 1,
-                cost: 10,
-                effect: () => { fishingPower.value += 1; },
-                getCost: (level) => Math.floor(10 * Math.pow(1.5, level - 1))
-            },
-            {
-                id: 'boat',
-                name: 'Boat Upgrade',
-                description: 'Improves fishing speed',
-                level: 1,
-                cost: 50,
-                effect: () => { /* Fishing time will be reduced */ },
-                getCost: (level) => Math.floor(50 * Math.pow(1.6, level - 1)),
-                maxLevel: 5
-            },
-            {
-                id: 'auto',
-                name: 'Auto-Fisher',
-                description: 'Automatically catches fish over time',
-                level: 0,
-                cost: 200,
-                effect: () => { 
-                    autoFishingRate.value += 0.2;
-                    setupAutoFishing();
-                },
-                getCost: (level) => Math.floor(200 * Math.pow(2, level))
-            },
-            {
-                id: 'lure',
-                name: 'Better Lures',
-                description: 'Increases chance of rare fish',
-                level: 1,
-                cost: 100,
-                effect: () => { /* Improve fish rarity chances */ },
-                getCost: (level) => Math.floor(100 * Math.pow(1.7, level - 1))
-            },
-            {
-                id: 'merchant',
-                name: 'Fish Merchant',
-                description: 'Automatically sells 5% of your fish every 10 seconds',
-                level: 0,
-                cost: 1500,
-                effect: () => { 
-                    // Setup auto-selling
-                    setupAutoSelling();
-                },
-                getCost: (level) => Math.floor(1500 * Math.pow(2, level)),
-                maxLevel: 1
-            }
-        ]);
-
-        // Setup auto fishing
-        function setupAutoFishing() {
-            if (autoFishingInterval) {
-                clearInterval(autoFishingInterval);
-            }
-            
-            if (autoFishingRate.value > 0) {
-                autoFishingActive.value = true;
-                const intervalTime = 5000; // 5 second interval
-                autoFishingInterval = setInterval(() => {
-                    if (!isFishing.value) {
-                        performAutoFishing();
-                    }
-                }, intervalTime);
-            }
-        }
-
-        // Perform auto fishing with visual feedback
-        function performAutoFishing() {
-            // Move boat to random position
-            boatPosition.value = Math.random() * 80 + 10;
-            
-            // Start auto fishing process with animations
-            isFishing.value = true;
-            
-            // Animate fishing line down
-            lineLength.value = 0;
-            setTimeout(() => {
-                // Adjust line length for mobile
-                const maxDepth = window.innerWidth <= 600 ? 200 : 300;
-                lineLength.value = maxDepth + Math.random() * 50;
-                
-                // Show splash effect when line hits water
-                showSplash.value = true;
-                setTimeout(() => {
-                    showSplash.value = false;
-                }, 1000);
-                
-                // Catch fish after line is fully extended
-                setTimeout(() => {
-                    catchFish(true);
-                    
-                    // Reel in the line
-                    setTimeout(() => {
-                        lineLength.value = 0;
-                        setTimeout(() => {
-                            isFishing.value = false;
-                        }, 500);
-                    }, 500);
-                }, 1000);
-            }, 500);
         }
 
         // Auto sell fish
@@ -780,23 +928,29 @@ createApp({
             // Sell 5% of each type of fish every interval
             fishTypes.forEach(type => {
                 if (inventory.value[type] > 0) {
-                    const fishType = currentFishTypes.value.find(fish => fish.name === type);
+                    const fishType = fishingLocations.value.flatMap(loc => loc.fishTypes).find(fish => fish.name === type);
                     if (fishType) {
                         // Calculate amount to sell (5% of inventory, min 1)
                         const amountToSell = Math.max(1, Math.floor(inventory.value[type] * 0.05));
                         const amountActuallySold = Math.min(amountToSell, inventory.value[type]);
                         
                         // Apply prestige bonus to fish value
-                        const valueMultiplier = 1 + prestigeBonuses.fishValue;
-                        const value = Math.floor(fishType.value * amountActuallySold * valueMultiplier);
+                        const prestigeMultiplier = 1 + prestigeBonuses.fishValue;
+                        
+                        // Apply knowledge skill bonus
+                        const baseValue = fishType.value * amountActuallySold;
+                        const valueWithSkill = applyFishValueSkillBonus(baseValue);
+                        
+                        // Apply final value with prestige bonus
+                        const value = Math.floor(valueWithSkill * prestigeMultiplier);
                         
                         // Add money and reduce inventory
                         money.value += value;
                         inventory.value[type] -= amountActuallySold;
                         
-                        // If inventory is empty for this type, remove it
+                        // If inventory is empty for this type, set to 0 but don't remove the key
                         if (inventory.value[type] <= 0) {
-                            delete inventory.value[type];
+                            inventory.value[type] = 0;
                         }
                     }
                 }
@@ -804,450 +958,6 @@ createApp({
             
             // Force Vue to recognize the change
             inventory.value = { ...inventory.value };
-        }
-
-        // Setup auto selling
-        function setupAutoSelling() {
-            const merchantUpgrade = upgrades.value.find(u => u.id === 'merchant');
-            if (merchantUpgrade && merchantUpgrade.level > 0) {
-                // Auto sell fish every 10 seconds
-                setInterval(() => {
-                    autoSellFish();
-                }, 10000);
-            }
-        }
-
-        // Generate fish swimming in the background
-        function generateFish() {
-            const fishType = currentFishTypes.value[Math.floor(Math.random() * currentFishTypes.value.length)];
-            const newFish = {
-                id: fishIdCounter++,
-                position: -15, // Start further off-screen
-                depth: Math.random() * 70 + 15, // Random depth between 15% and 85%
-                direction: Math.random() > 0.5 ? 1 : -1, // Random direction
-                speed: Math.random() * 1.5 + 0.8, // More natural varied speed
-                color: fishType.color,
-                size: Math.random() * 0.5 + 0.8 // Size variation factor (0.8 to 1.3)
-            };
-            
-            // If going right to left, start from right side
-            if (newFish.direction === -1) {
-                newFish.position = 115; // Further off-screen right
-            }
-            
-            fishInWater.value.push(newFish);
-            
-            // Remove fish when it goes off-screen
-            setTimeout(() => {
-                fishInWater.value = fishInWater.value.filter(f => f.id !== newFish.id);
-            }, 20000); // Longer time to cross for more natural movement
-        }
-
-        // Update fish positions with more natural movement
-        function updateFishPositions() {
-            fishInWater.value.forEach(fish => {
-                // Add subtle vertical movement
-                if (!fish.verticalDirection) {
-                    fish.verticalDirection = Math.random() > 0.5 ? 0.05 : -0.05;
-                }
-                
-                // Occasionally change vertical direction
-                if (Math.random() < 0.02) {
-                    fish.verticalDirection *= -1;
-                }
-                
-                // Occasionally change speed for more natural movement
-                if (Math.random() < 0.01) {
-                    fish.speed = Math.random() * 1.5 + 0.8;
-                }
-                
-                // Update depth with boundaries
-                fish.depth += fish.verticalDirection;
-                if (fish.depth < 15) fish.depth = 15;
-                if (fish.depth > 85) fish.depth = 85;
-                
-                // Update horizontal position
-                if (fish.direction === 1) {
-                    fish.position += fish.speed;
-                } else {
-                    fish.position -= fish.speed;
-                }
-            });
-        }
-
-        // Create water ripple effect
-        function createWaterRipple() {
-            const waterContainer = document.querySelector('.water');
-            if (!waterContainer) return;
-            
-            const ripple = document.createElement('div');
-            ripple.className = 'water-ripple';
-            ripple.style.top = `${Math.random() * 300 + 50}px`;
-            ripple.style.opacity = `${Math.random() * 0.5 + 0.2}`;
-            ripple.style.animation = `ripple-move ${Math.random() * 5 + 8}s linear forwards`;
-            
-            waterContainer.appendChild(ripple);
-            
-            // Remove ripple after animation
-            setTimeout(() => {
-                ripple.remove();
-            }, 15000);
-        }
-
-        // Additional ocean ambience effects
-        function setupOceanAmbience() {
-            // Create random ripples
-            setInterval(() => {
-                if (Math.random() < 0.3) { // 30% chance every interval
-                    createWaterRipple();
-                }
-            }, 3000);
-        }
-
-        // Format large numbers
-        function formatNumber(num) {
-            // Fix floating point precision issues for auto-fishing rate
-            if (typeof num === 'number' && String(num).includes('.')) {
-                num = parseFloat(num.toFixed(2));
-            }
-            
-            if (num >= 1000000) {
-                return (num / 1000000).toFixed(1) + 'M';
-            } else if (num >= 1000) {
-                return (num / 1000).toFixed(1) + 'K';
-            } else {
-                return String(num);
-            }
-        }
-
-        // Add seasonal event state
-        const currentSeason = ref(null);
-        const currentSpecialEvent = ref(null);
-        const seasonalParticles = ref([]);
-        const showSun = ref(false);
-
-        // Determine current season and special events
-        function detectSeasonalEvents() {
-            const now = new Date();
-            const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
-            const currentDay = now.getDate();
-            
-            // Detect season
-            let detectedSeason = null;
-            Object.entries(CONFIG.seasonalEvents.seasons).forEach(([seasonId, season]) => {
-                if (season.months.includes(currentMonth)) {
-                    detectedSeason = seasonId;
-                }
-            });
-            currentSeason.value = detectedSeason;
-            
-            // Detect special events
-            let detectedEvent = null;
-            Object.entries(CONFIG.seasonalEvents.specialEvents).forEach(([eventId, event]) => {
-                if (event.month === currentMonth) {
-                    // Check if we're within the event range
-                    const eventDate = new Date(now.getFullYear(), event.month - 1, event.day);
-                    const diffTime = Math.abs(now - eventDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
-                    if (diffDays <= event.range) {
-                        detectedEvent = eventId;
-                    }
-                }
-            });
-            currentSpecialEvent.value = detectedEvent;
-            
-            // Apply seasonal effects
-            if (CONFIG.seasonalEvents.enabled) {
-                applySeasonalEffects();
-            }
-            
-            // Add special event notification to inbox if it just started
-            if (detectedEvent && emails.value.findIndex(e => e.id === `event-${detectedEvent}`) === -1) {
-                addSeasonalEventEmail(detectedEvent);
-            }
-        }
-        
-        // Apply visual effects based on current season
-        function applySeasonalEffects() {
-            // Clear existing particles
-            seasonalParticles.value = [];
-            
-            if (!currentSeason.value) return;
-            
-            const season = CONFIG.seasonalEvents.seasons[currentSeason.value];
-            
-            // Handle seasonal particles
-            if (season.particles === "snow") {
-                createSnowParticles();
-            } else if (season.particles === "leaves") {
-                createLeafParticles();
-            } else if (season.particles === "petals") {
-                createPetalParticles();
-            } else if (season.particles === "sunshine") {
-                showSun.value = true;
-                createSunshineEffect();
-            } else {
-                showSun.value = false;
-            }
-        }
-        
-        // Create snow particles
-        function createSnowParticles() {
-            const particleCount = window.innerWidth <= 600 ? 30 : 50;
-            
-            for (let i = 0; i < particleCount; i++) {
-                seasonalParticles.value.push({
-                    id: `snow-${i}`,
-                    type: 'snow',
-                    x: Math.random() * 100, // %
-                    y: -10 - Math.random() * 10, // Start above screen
-                    size: Math.random() * 5 + 2,
-                    speed: Math.random() * 2 + 1,
-                    opacity: Math.random() * 0.7 + 0.3,
-                    rotation: Math.random() * 360
-                });
-            }
-            
-            // Animate snow particles
-            animateParticles();
-        }
-        
-        // Create leaf particles for autumn
-        function createLeafParticles() {
-            const particleCount = window.innerWidth <= 600 ? 20 : 40;
-            const colors = ['#FF5722', '#FF9800', '#FFC107', '#8D6E63', '#795548'];
-            
-            for (let i = 0; i < particleCount; i++) {
-                seasonalParticles.value.push({
-                    id: `leaf-${i}`,
-                    type: 'leaf',
-                    x: Math.random() * 100, // %
-                    y: -10 - Math.random() * 10, // Start above screen
-                    size: Math.random() * 8 + 5,
-                    speed: Math.random() * 1.5 + 1,
-                    opacity: Math.random() * 0.7 + 0.3,
-                    rotation: Math.random() * 360,
-                    color: colors[Math.floor(Math.random() * colors.length)],
-                    rotationSpeed: (Math.random() - 0.5) * 4
-                });
-            }
-            
-            // Animate leaf particles
-            animateParticles();
-        }
-        
-        // Create petal particles for spring
-        function createPetalParticles() {
-            const particleCount = window.innerWidth <= 600 ? 20 : 40;
-            const colors = ['#FFCDD2', '#F8BBD0', '#E1BEE7', '#D1C4E9', '#FFFFFF'];
-            
-            for (let i = 0; i < particleCount; i++) {
-                seasonalParticles.value.push({
-                    id: `petal-${i}`,
-                    type: 'petal',
-                    x: Math.random() * 100, // %
-                    y: -10 - Math.random() * 10, // Start above screen
-                    size: Math.random() * 6 + 3,
-                    speed: Math.random() * 1.5 + 0.8,
-                    opacity: Math.random() * 0.7 + 0.3,
-                    rotation: Math.random() * 360,
-                    color: colors[Math.floor(Math.random() * colors.length)],
-                    rotationSpeed: (Math.random() - 0.5) * 3
-                });
-            }
-            
-            // Animate petal particles
-            animateParticles();
-        }
-        
-        // Create sunshine effect for summer
-        function createSunshineEffect() {
-            const waterElement = document.querySelector('.water');
-            if (!waterElement) return;
-            
-            // Add sun element if it doesn't exist
-            let sunElement = document.querySelector('.seasonal-sun');
-            if (!sunElement) {
-                sunElement = document.createElement('div');
-                sunElement.className = 'seasonal-sun';
-                waterElement.appendChild(sunElement);
-                
-                // Create rays
-                for (let i = 0; i < 12; i++) {
-                    const ray = document.createElement('div');
-                    ray.className = 'sun-ray';
-                    ray.style.transform = `rotate(${i * 30}deg)`;
-                    sunElement.appendChild(ray);
-                }
-            }
-        }
-        
-        // Animate particles
-        function animateParticles() {
-            if (seasonalParticles.value.length === 0) return;
-            
-            const animationInterval = setInterval(() => {
-                seasonalParticles.value.forEach(particle => {
-                    // Update particle position
-                    particle.y += particle.speed;
-                    
-                    // Apply wind effect for more natural movement
-                    if (particle.type === 'snow' || particle.type === 'leaf' || particle.type === 'petal') {
-                        particle.x += Math.sin(Date.now() / 1000 + particle.id.charCodeAt(0)) * 0.2;
-                        
-                        // Update rotation for leaves and petals
-                        if (particle.type === 'leaf' || particle.type === 'petal') {
-                            particle.rotation += particle.rotationSpeed;
-                        }
-                    }
-                    
-                    // Remove particles that go off-screen
-                    if (particle.y > 110) {
-                        const index = seasonalParticles.value.findIndex(p => p.id === particle.id);
-                        if (index !== -1) {
-                            // Create a new particle to replace this one
-                            const newParticle = { ...particle };
-                            newParticle.y = -10 - Math.random() * 10;
-                            newParticle.x = Math.random() * 100;
-                            seasonalParticles.value.splice(index, 1, newParticle);
-                        }
-                    }
-                });
-            }, 50);
-            
-            // Clean up interval when switching seasons
-            return () => clearInterval(animationInterval);
-        }
-        
-        // Add seasonal event notification to inbox
-        function addSeasonalEventEmail(eventId) {
-            const event = CONFIG.seasonalEvents.specialEvents[eventId];
-            
-            addEmail({
-                id: `event-${eventId}`,
-                subject: `${event.name} Event Started!`,
-                sender: CONFIG.inboxSystem.defaultSender,
-                senderEmail: CONFIG.inboxSystem.senderEmail,
-                date: new Date().toLocaleDateString(),
-                content: `
-                    <p>Ahoy, Captain!</p>
-                    <p>The ${event.name} celebrations have begun! For a limited time, enjoy special themed fish and festive atmosphere.</p>
-                    ${eventId === 'halloween' ? `
-                    <p>Strange energies have transformed the fish into spooky versions of themselves. Can you catch them all before they return to normal?</p>
-                    <p>🎃 Happy Halloween! 🎃</p>
-                    ` : eventId === 'christmas' ? `
-                    <p>The fish have gotten into the holiday spirit and are wearing festive hats! Catch these special variants for bonus rewards.</p>
-                    <p>🎄 Merry Christmas! 🎄</p>
-                    ` : ''}
-                    <p>Happy fishing!</p>
-                    <p>- Jafet Egill<br>Game Developer</p>
-                `,
-                read: false
-            });
-        }
-        
-        // Get season-modified fish color
-        function getSeasonalFishColor(fishColor) {
-            if (!CONFIG.seasonalEvents.enabled) return fishColor;
-            
-            // If there's a special event active, it takes precedence
-            if (currentSpecialEvent.value === 'halloween') {
-                // Spooky colors for Halloween
-                return addHalloweenEffect(fishColor);
-            } else if (currentSpecialEvent.value === 'christmas') {
-                // No color change for Christmas, but we'll add hats in the fish rendering
-                return fishColor;
-            }
-            
-            // Otherwise use seasonal modifications
-            if (currentSeason.value === 'winter') {
-                // More blue-ish tint for winter
-                return adjustColorShade(fishColor, 'blue', 0.2);
-            } else if (currentSeason.value === 'autumn') {
-                // More orange/brown tint for autumn
-                return adjustColorShade(fishColor, 'orange', 0.2);
-            }
-            
-            return fishColor;
-        }
-        
-        // Add Halloween effect to fish color
-        function addHalloweenEffect(color) {
-            // Make colors more orange, purple, green, or black
-            const halloweenColors = ['#FF6D00', '#6A1B9A', '#388E3C', '#212121'];
-            // We'll keep some resemblance to original color but shift toward Halloween palette
-            return halloweenColors[Math.floor(Math.random() * halloweenColors.length)];
-        }
-        
-        // Adjust color shade
-        function adjustColorShade(color, tint, amount) {
-            // Simple color adjustment - in a full implementation,
-            // this would use proper color manipulation
-            if (tint === 'blue') {
-                return color; // For simplicity, return original color for now
-            } else if (tint === 'orange') {
-                return color; // For simplicity, return original color for now
-            }
-            return color;
-        }
-        
-        // Fish rendering with seasonal modifications
-        function renderSeasonalFish(ctx, fish, x, y, width, height) {
-            // Base fish rendering
-            ctx.fillStyle = getSeasonalFishColor(fish.color);
-            
-            // Fish body
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.bezierCurveTo(x + width * 0.4, y - height * 0.5, x + width * 0.4, y + height * 0.5, x, y);
-            ctx.bezierCurveTo(x + width * 0.8, y, x + width * 0.8, y, x + width, y);
-            ctx.fill();
-            
-            // Fish eye
-            ctx.fillStyle = "#000";
-            ctx.beginPath();
-            ctx.arc(x + width * 0.8, y, height * 0.1, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Special event accessories
-            if (CONFIG.seasonalEvents.enabled) {
-                if (currentSpecialEvent.value === 'christmas') {
-                    // Add Santa hat
-                    ctx.fillStyle = "#FF0000"; // Red hat
-                    ctx.beginPath();
-                    ctx.moveTo(x + width * 0.7, y - height * 0.2);
-                    ctx.lineTo(x + width * 0.9, y - height * 0.5);
-                    ctx.lineTo(x + width * 1.0, y - height * 0.2);
-                    ctx.fill();
-                    
-                    // White trim
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.beginPath();
-                    ctx.ellipse(x + width * 0.85, y - height * 0.2, width * 0.15, height * 0.1, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Pom-pom
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.beginPath();
-                    ctx.arc(x + width * 0.9, y - height * 0.5, height * 0.1, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (currentSpecialEvent.value === 'halloween') {
-                    // Maybe add small witch hat or spooky eyes
-                    // Spooky eyes
-                    ctx.fillStyle = "#FF5722"; // Orange glowing eyes
-                    ctx.beginPath();
-                    ctx.arc(x + width * 0.8, y, height * 0.1, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-        }
-        
-        // Get fish color by type with seasonal modifications
-        function getFishColor(type) {
-            const fishType = currentFishTypes.value.find(fish => fish.name === type);
-            const baseColor = fishType ? fishType.color : "#6495ED";
-            return getSeasonalFishColor(baseColor);
         }
 
         // Toggle encyclopedia view
@@ -1318,7 +1028,6 @@ createApp({
                 // Reset upgrade levels
                 upgrades.value.forEach(upgrade => {
                     upgrade.level = upgrade.id === 'rod' || upgrade.id === 'boat' || upgrade.id === 'lure' ? 1 : 0;
-                    upgrade.cost = upgrade.getCost(upgrade.level);
                 });
                 
                 // Reset locations
@@ -1342,6 +1051,15 @@ createApp({
                     encyclopedia.value[fishId].caught = 0;
                     encyclopedia.value[fishId].record = { weight: 0, length: 0 };
                 });
+                
+                // Reset fishing skills
+                totalXP.value = 0;
+                fishingSkills.value.forEach(skill => {
+                    skill.level = 1;
+                    skill.xp = 0;
+                    skill.nextLevelXp = CONFIG.skillsSystem.skills.find(s => s.id === skill.id).xpToLevelUp(1);
+                });
+                calculateTotalSkillsLevel();
                 
                 // Keep the emails
                 CONFIG.inboxSystem.welcomeMessageSent = true;
@@ -1389,7 +1107,9 @@ createApp({
                 encyclopediaUnlocked: encyclopediaUnlocked.value,
                 lastOnlineTime: Date.now(),
                 prestigeLevel: prestigeLevel.value,
-                emails: emails.value
+                emails: emails.value,
+                fishingSkills: fishingSkills.value,
+                totalXP: totalXP.value
             };
             localStorage.setItem('fishingTycoonSave', JSON.stringify(saveData));
             
@@ -1531,6 +1251,20 @@ createApp({
             return highestMatch.title;
         }
         
+        // Get highest rank level achieved
+        function getCurrentHighestRankLevel() {
+            const ranks = CONFIG.prestigeSystem.ranks;
+            let highestLevel = 0;
+            
+            for (const rank of ranks) {
+                if (prestigeLevel.value >= rank.level && rank.level > highestLevel) {
+                    highestLevel = rank.level;
+                }
+            }
+            
+            return highestLevel;
+        }
+        
         // Check if player can prestige
         const canPrestige = computed(() => {
             const reqs = CONFIG.prestigeSystem.requirements;
@@ -1605,7 +1339,6 @@ createApp({
             // Reset upgrade levels except for prestige-derived bonuses
             upgrades.value.forEach(upgrade => {
                 upgrade.level = upgrade.id === 'rod' || upgrade.id === 'boat' || upgrade.id === 'lure' ? 1 : 0;
-                upgrade.cost = upgrade.getCost(upgrade.level);
             });
             
             // Reset locations but keep encyclopedia knowledge
@@ -1624,6 +1357,16 @@ createApp({
             
             // Keep encyclopedia discovery data - this is maintained through prestiges
             
+            // Reset fishing skills but give 1 free skill level per prestige level
+            totalXP.value = 0;
+            fishingSkills.value.forEach(skill => {
+                // Start at level 1 + a bonus level for each prestige level (capped at max level)
+                skill.level = Math.min(1 + prestigeLevel.value, skill.maxLevel);
+                skill.xp = 0;
+                skill.nextLevelXp = CONFIG.skillsSystem.skills.find(s => s.id === skill.id).xpToLevelUp(skill.level);
+            });
+            calculateTotalSkillsLevel();
+            
             // Reset auto fishing setup if applicable
             setupAutoFishing();
             
@@ -1635,18 +1378,70 @@ createApp({
             showBoatCustomization.value = false;
         }
 
-        // Get highest rank level user has achieved
-        function getCurrentHighestRankLevel() {
-            const ranks = CONFIG.prestigeSystem.ranks;
-            let highestMatch = 0;
+        // Update auto-fishing rate based on automation skill
+        function updateAutoFishingRateFromSkills() {
+            const automationSkill = fishingSkills.value.find(skill => skill.id === 'automation');
+            if (!automationSkill) return;
             
-            for (const rank of ranks) {
-                if (prestigeLevel.value >= rank.level && rank.level > highestMatch) {
-                    highestMatch = rank.level;
+            // Get base auto-fishing rate (from upgrades)
+            const autoFisherUpgrade = upgrades.value.find(u => u.id === 'autoFisher');
+            const baseAutoRate = autoFisherUpgrade ? autoFisherUpgrade.getEffect(autoFisherUpgrade.level) : 0;
+            
+            // Calculate bonus from automation skill
+            const automationBonus = automationSkill.level * automationSkill.bonusPerLevel;
+            
+            // Update auto-fishing rate with skill bonus (add prestige bonus too)
+            autoFishingRate.value = baseAutoRate * (1 + automationBonus) + prestigeBonuses.autoFishing;
+            
+            // Update auto-fishing functionality
+            setupAutoFishing();
+        }
+
+        // Purchase upgrade
+        function purchaseUpgrade(upgradeId) {
+            const upgrade = upgrades.value.find(u => u.id === upgradeId);
+            if (upgrade && money.value >= upgrade.cost) {
+                money.value -= upgrade.cost;
+                upgrade.level++;
+
+                // Apply upgrade effects
+                if (upgrade.id === 'rod' || upgrade.id === 'bait' || upgrade.id === 'lure') {
+                    // Update fishing power based on all fishing upgrades
+                    updateFishingPower();
+                } else if (upgrade.id === 'autoFisher') {
+                    // Base auto-fishing rate from the upgrade
+                    const baseRate = upgrade.getEffect(upgrade.level);
+                    // Update with skill effects
+                    updateAutoFishingRateFromSkills();
+                } else if (upgrade.id === 'merchant' && upgrade.level === 1) {
+                    setupAutoSelling();
                 }
             }
-            
-            return highestMatch;
+        }
+
+        // Formatting helper for numbers
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toString();
+        }
+        
+        // Get fish color from type
+        function getFishColor(type) {
+            const fish = fishingLocations.value.flatMap(loc => loc.fishTypes).find(fish => fish.name === type);
+            return fish ? fish.color : '#64B5F6';
+        }
+        
+        // Calculate total skills bonus percentage
+        function calculateTotalSkillsBonus() {
+            let totalBonus = 0;
+            fishingSkills.value.forEach(skill => {
+                totalBonus += (skill.level * skill.bonusPerLevel * 100);
+            });
+            return totalBonus.toFixed(1);
         }
 
         // Initialize on mount with ocean ambience
@@ -1654,6 +1449,17 @@ createApp({
             // Initialize existing features
             // Load all canvas images
             loadLocationCanvases();
+            
+            // Initialize waterline canvas
+            initWaterlineCanvas();
+            
+            // Add cinematic lighting effects
+            initializeCinematicEffects();
+            
+            // Start background music
+            const backgroundMusic = document.getElementById('background-music');
+            backgroundMusic.volume = 0.6; // Set volume to 60%
+            backgroundMusic.play().catch(e => console.log("Audio autoplay prevented:", e));
             
             // Generate initial fish
             for (let i = 0; i < 8; i++) {
@@ -1686,6 +1492,9 @@ createApp({
             // Initialize inbox
             initializeInbox();
             
+            // Initialize skills system
+            initializeSkillsSystem();
+            
             // Initialize ocean ambience effects
             setupOceanAmbience();
             
@@ -1699,6 +1508,59 @@ createApp({
                 }, 1000 * 60 * 60); // Check every hour
             }
         });
+        
+        // Update fish positions
+        function updateFishPositions() {
+            const now = Date.now();
+            fishInWater.value.forEach(fish => {
+                // Change direction randomly
+                if (now >= fish.nextDirectionChange) {
+                    fish.direction *= -1; // Flip direction
+                    fish.nextDirectionChange = now + Math.random() * 10000 + 5000;
+                }
+                
+                // Update horizontal position based on direction and speed
+                fish.position += fish.speed * fish.direction;
+                
+                // Update vertical position with small oscillation
+                fish.depth += fish.verticalSpeed;
+                
+                // Bounce if reaching edges
+                if (fish.depth < 40) {
+                    fish.depth = 40;
+                    fish.verticalSpeed *= -1;
+                } else if (fish.depth > 90) {
+                    fish.depth = 90;
+                    fish.verticalSpeed *= -1;
+                }
+                
+                // Remove fish that swim off screen (with buffer)
+                if (fish.position < -20 || fish.position > 120) {
+                    fishInWater.value = fishInWater.value.filter(f => f.id !== fish.id);
+                }
+            });
+        }
+        
+        // Initialize ocean ambience effects
+        function setupOceanAmbience() {
+            // Create subtle water movement and ambient sounds
+            const waterContainer = document.querySelector('.water');
+            if (!waterContainer) return;
+            
+            // Add subtle bubbles
+            for (let i = 0; i < 8; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'ambient-particle';
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.top = `${Math.random() * 100}%`;
+                bubble.style.width = `${Math.random() * 4 + 2}px`;
+                bubble.style.height = `${Math.random() * 4 + 2}px`;
+                bubble.style.opacity = Math.random() * 0.5 + 0.2;
+                bubble.style.animationDuration = `${Math.random() * 20 + 10}s`;
+                bubble.style.animationDelay = `${Math.random() * 10}s`;
+                waterContainer.appendChild(bubble);
+            }
+        }
         
         // Load game data
         onMounted(() => {
@@ -1783,6 +1645,23 @@ createApp({
                         calculatePrestigeBonuses();
                     }
                     
+                    // Load fishing skills data
+                    if (data.fishingSkills) {
+                        totalXP.value = data.totalXP || 0;
+                        
+                        data.fishingSkills.forEach(savedSkill => {
+                            const skill = fishingSkills.value.find(s => s.id === savedSkill.id);
+                            if (skill) {
+                                skill.level = savedSkill.level;
+                                skill.xp = savedSkill.xp;
+                                skill.nextLevelXp = savedSkill.nextLevelXp;
+                            }
+                        });
+                        
+                        calculateTotalSkillsLevel();
+                        applySkillEffects();
+                    }
+                    
                     // Setup auto fishing based on loaded data
                     setupAutoFishing();
                 } catch (error) {
@@ -1796,12 +1675,12 @@ createApp({
             // Calculate prestige bonuses on initial load
             calculatePrestigeBonuses();
         });
-
-        // Update save function to include inbox data
+        
+        // Update save function to include skills data
         watch([
             money, inventory, totalFishCaught, fishingPower, autoFishingRate, upgrades,
             fishingLocations, activeLocationId, boatCustomization, encyclopedia, encyclopediaUnlocked,
-            prestigeLevel, emails
+            prestigeLevel, emails, fishingSkills, totalXP
         ], () => {
             const saveData = {
                 money: money.value,
@@ -1820,19 +1699,544 @@ createApp({
                 encyclopediaUnlocked: encyclopediaUnlocked.value,
                 lastOnlineTime: Date.now(), // Save current timestamp
                 prestigeLevel: prestigeLevel.value, // Save prestige level
-                emails: emails.value
+                emails: emails.value,
+                fishingSkills: fishingSkills.value,
+                totalXP: totalXP.value
             };
             localStorage.setItem('fishingTycoonSave', JSON.stringify(saveData));
         }, { deep: true });
 
-        // Add window event listener to update last online time when page is about to be closed
-        onMounted(() => {
-            window.addEventListener('beforeunload', () => {
-                const saveData = JSON.parse(localStorage.getItem('fishingTycoonSave') || '{}');
-                saveData.lastOnlineTime = Date.now();
-                localStorage.setItem('fishingTycoonSave', JSON.stringify(saveData));
+        const seasonalParticles = ref([]);
+        const currentSeason = ref(null);
+        const currentSpecialEvent = ref(null);
+
+        // Initialize waterline canvas
+        function initWaterlineCanvas() {
+            // Create canvas for water effects if needed
+            const waterContainer = document.querySelector('.water');
+            if (!waterContainer) return;
+            
+            // Remove existing canvas if there's one
+            const existingCanvas = document.querySelector('.waterline-canvas');
+            if (existingCanvas) existingCanvas.remove();
+            
+            // Create new canvas
+            waterlineCanvas = document.createElement('canvas');
+            waterlineCanvas.className = 'waterline-canvas';
+            waterlineCanvas.width = waterContainer.clientWidth;
+            waterlineCanvas.height = waterContainer.clientHeight;
+            waterContainer.appendChild(waterlineCanvas);
+            
+            // Get context
+            waterlineCtx = waterlineCanvas.getContext('2d');
+            
+            // Start animation
+            animateWaterline();
+        }
+        
+        // Animate waterline
+        function animateWaterline() {
+            if (!waterlineCanvas || !waterlineCtx) return;
+            
+            // Clear canvas
+            waterlineCtx.clearRect(0, 0, waterlineCanvas.width, waterlineCanvas.height);
+            
+            // Draw subtle water movement
+            waterlineCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+            waterlineCtx.lineWidth = 1.5;
+            
+            // Draw waves
+            waterlineCtx.beginPath();
+            for (let x = 0; x < waterlineCanvas.width; x += 20) {
+                const y = Math.sin((x + waveOffset) / 30) * 5 + 50;
+                if (x === 0) {
+                    waterlineCtx.moveTo(x, y);
+                } else {
+                    waterlineCtx.lineTo(x, y);
+                }
+            }
+            waterlineCtx.stroke();
+            
+            // Update offset for animation
+            waveOffset += 0.5;
+            
+            // Repeat animation
+            waterlineAnimationId = requestAnimationFrame(animateWaterline);
+        }
+        
+        // Generate new fish function
+        function generateFish() {
+            const fishTypes = currentFishTypes.value;
+            if (!fishTypes || fishTypes.length === 0) return;
+            
+            // Randomly select a fish type from current location
+            const randomIndex = Math.floor(Math.random() * fishTypes.length);
+            const fishType = fishTypes[randomIndex];
+            
+            // Create a unique ID for this fish
+            const fishId = `fish-${fishIdCounter++}`;
+            
+            // Calculate a random depth within the fish's preferred range
+            const depth = Math.random() * (fishType.maxDepth - fishType.minDepth) + fishType.minDepth;
+            
+            // Add the fish to our water
+            fishInWater.value.push({
+                id: fishId,
+                type: fishType.name,
+                color: fishType.color,
+                position: Math.random() < 0.5 ? -10 : 110, // Start offscreen (left or right)
+                depth: depth,
+                direction: Math.random() < 0.5 ? 1 : -1, // Swimming direction
+                speed: Math.random() * 0.5 + 0.5, // Random speed
+                verticalSpeed: Math.random() * 0.2 - 0.1, // Small vertical movement
+                nextDirectionChange: Date.now() + Math.random() * 10000 + 5000 // Change direction randomly
             });
-        });
+            
+            // Remove fish after some time
+            setTimeout(() => {
+                fishInWater.value = fishInWater.value.filter(fish => fish.id !== fishId);
+            }, Math.random() * 20000 + 15000); // Fish live for 15-35 seconds
+        }
+        
+        // Initialize cinematic effects
+        function initializeCinematicEffects() {
+            const waterContainer = document.querySelector('.water');
+            if (!waterContainer) return;
+            
+            // Add reflection overlay
+            const reflectionOverlay = document.createElement('div');
+            reflectionOverlay.className = 'water-reflection-overlay';
+            waterContainer.appendChild(reflectionOverlay);
+            
+            // Add light source
+            const lightSource = document.createElement('div');
+            lightSource.className = 'light-source';
+            waterContainer.appendChild(lightSource);
+            
+            // Add subtle caustic effects
+            for (let i = 0; i < 3; i++) {
+                const caustic = document.createElement('div');
+                caustic.className = 'caustic-light';
+                caustic.style.left = `${Math.random() * 70 + 15}%`;
+                caustic.style.top = `${Math.random() * 50 + 20}%`;
+                caustic.style.animationDelay = `${i * 3}s`;
+                waterContainer.appendChild(caustic);
+            }
+            
+            // Add god rays
+            const godRays = document.createElement('div');
+            godRays.className = 'god-rays';
+            waterContainer.appendChild(godRays);
+            
+            // Add depth of field overlay
+            const depthOfField = document.createElement('div');
+            depthOfField.className = 'depth-of-field-overlay';
+            waterContainer.appendChild(depthOfField);
+            
+            // Add ambient particles
+            for (let i = 0; i < 10; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'ambient-particle';
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.width = `${Math.random() * 3 + 1}px`;
+                particle.style.height = `${Math.random() * 3 + 1}px`;
+                particle.style.opacity = Math.random() * 0.5 + 0.1;
+                particle.style.animationDuration = `${Math.random() * 15 + 10}s`;
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                waterContainer.appendChild(particle);
+            }
+        }
+        
+        // Get highest rank level achieved
+        function getCurrentHighestRankLevel() {
+            const ranks = CONFIG.prestigeSystem.ranks;
+            let highestLevel = 0;
+            
+            for (const rank of ranks) {
+                if (prestigeLevel.value >= rank.level && rank.level > highestLevel) {
+                    highestLevel = rank.level;
+                }
+            }
+            
+            return highestLevel;
+        }
+
+        // Add methods for applying skill bonuses
+        function applyLuckSkillToFishChance(fish) {
+            const luckSkill = fishingSkills.value.find(skill => skill.id === 'luck');
+            if (!luckSkill) return fish.chance;
+            
+            // Calculate luck bonus - increase rare fish chances
+            const rarityFactor = fish.chance < 0.1 ? 1.5 : 1; // Higher boost for rarer fish
+            const luckBonus = luckSkill.level * luckSkill.bonusPerLevel * rarityFactor;
+            
+            // Return adjusted chance
+            return fish.chance * (1 + luckBonus);
+        }
+        
+        function applyFishValueSkillBonus(baseValue) {
+            const knowledgeSkill = fishingSkills.value.find(skill => skill.id === 'knowledge');
+            if (!knowledgeSkill) return baseValue;
+            
+            // Calculate knowledge bonus for fish value
+            const knowledgeBonus = knowledgeSkill.level * knowledgeSkill.bonusPerLevel;
+            
+            // Return adjusted value
+            return baseValue * (1 + knowledgeBonus);
+        }
+        
+        function getSkillModifiedFishingTime(baseTime) {
+            const efficiencySkill = fishingSkills.value.find(skill => skill.id === 'efficiency');
+            if (!efficiencySkill) return baseTime;
+            
+            // Calculate efficiency bonus - reduced fishing time
+            const efficiencyBonus = efficiencySkill.level * efficiencySkill.bonusPerLevel;
+            
+            // Return adjusted time (minimum 50% of original)
+            return Math.max(baseTime * (1 - efficiencyBonus), baseTime * 0.5);
+        }
+        
+        function showSkillLevelUpNotification(skill) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'skill-levelup-notification';
+            
+            // Notification content
+            notification.innerHTML = `
+                <div class="levelup-icon">
+                    <i class="material-icons">${getSkillIcon(skill.id)}</i>
+                </div>
+                <div class="levelup-details">
+                    <h4>${skill.name} Level Up!</h4>
+                    <p>Level ${skill.level} reached</p>
+                </div>
+            `;
+            
+            // Add to document
+            document.body.appendChild(notification);
+            
+            // Trigger animation after a small delay
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Remove notification after a few seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 500);
+            }, 4000);
+        }
+        
+        // Update fishing power based on all fishing upgrades
+        function updateFishingPower() {
+            const rod = upgrades.value.find(u => u.id === 'rod');
+            const bait = upgrades.value.find(u => u.id === 'bait');
+            const lure = upgrades.value.find(u => u.id === 'lure');
+            
+            let power = 1; // Base fishing power
+            if (rod) power += rod.getEffect(rod.level);
+            if (bait) power += bait.getEffect(bait.level);
+            if (lure) power += lure.getEffect(lure.level);
+            
+            // Apply prestige bonus
+            power += prestigeBonuses.fishingPower;
+            
+            // Apply casting skill bonus
+            const castingSkill = fishingSkills.value.find(skill => skill.id === 'casting');
+            if (castingSkill) {
+                power *= (1 + castingSkill.level * castingSkill.bonusPerLevel);
+            }
+            
+            fishingPower.value = Math.floor(power * 10) / 10; // Round to 1 decimal place
+        }
+        
+        // Setup auto-fishing functionality
+        function setupAutoFishing() {
+            // Clear any existing auto-fishing interval
+            if (autoFishingInterval) {
+                clearInterval(autoFishingInterval);
+                autoFishingInterval = null;
+            }
+            
+            // If auto-fishing rate is positive, set up auto-fishing
+            if (autoFishingRate.value > 0) {
+                autoFishingActive.value = true;
+                
+                // Auto-fish every second
+                autoFishingInterval = setInterval(() => {
+                    catchFish(true); // Auto-fishing
+                }, 1000);
+            } else {
+                autoFishingActive.value = false;
+            }
+        }
+        
+        // Setup auto-selling functionality
+        function setupAutoSelling() {
+            const merchantUpgrade = upgrades.value.find(u => u.id === 'merchant');
+            if (merchantUpgrade && merchantUpgrade.level > 0) {
+                // Auto-sell every 5 seconds
+                setInterval(() => {
+                    autoSellFish();
+                }, 5000);
+            }
+        }
+        
+        // Detect seasonal events
+        function detectSeasonalEvents() {
+            if (!CONFIG.seasonalEvents.enabled) return;
+            
+            const now = new Date();
+            const month = now.getMonth() + 1; // 1-12
+            const day = now.getDate();
+            
+            // Check for special events first (they take priority)
+            const specialEvent = checkForSpecialEvent(month, day);
+            
+            if (specialEvent) {
+                applySpecialEvent(specialEvent);
+            } else {
+                // Check for seasonal changes
+                const season = getSeasonForMonth(month);
+                applySeason(season);
+            }
+            
+            // Add seasonal particles based on current season or event
+            updateSeasonalParticles();
+        }
+        
+        // Check if today is a special event
+        function checkForSpecialEvent(month, day) {
+            const events = CONFIG.seasonalEvents.specialEvents;
+            
+            for (const [eventId, event] of Object.entries(events)) {
+                if (event.month === month) {
+                    // Check if today is within range of the event
+                    const dayDiff = Math.abs(day - event.day);
+                    if (dayDiff <= event.range) {
+                        return eventId;
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        // Get the season for the current month
+        function getSeasonForMonth(month) {
+            const seasons = CONFIG.seasonalEvents.seasons;
+            
+            for (const [seasonId, season] of Object.entries(seasons)) {
+                if (season.months.includes(month)) {
+                    return seasonId;
+                }
+            }
+            
+            return null;
+        }
+        
+        // Apply special event effects
+        function applySpecialEvent(eventId) {
+            // Store the current special event
+            currentSpecialEvent.value = eventId;
+            currentSeason.value = null;
+            
+            // Modify water appearance
+            const waterElement = document.querySelector('.water');
+            if (waterElement) {
+                // Remove any existing seasonal classes
+                Object.keys(CONFIG.seasonalEvents.seasons).forEach(season => {
+                    waterElement.classList.remove(`${season}-water`);
+                });
+                
+                // Add special event class
+                waterElement.classList.add(`${eventId}-water`);
+            }
+        }
+        
+        // Apply seasonal effects
+        function applySeason(seasonId) {
+            // Store the current season
+            currentSeason.value = seasonId;
+            currentSpecialEvent.value = null;
+            
+            // Modify water appearance
+            const waterElement = document.querySelector('.water');
+            if (waterElement) {
+                // Remove any existing seasonal classes
+                Object.keys(CONFIG.seasonalEvents.seasons).forEach(season => {
+                    waterElement.classList.remove(`${season}-water`);
+                });
+                
+                // Add new season class if valid
+                if (seasonId) {
+                    waterElement.classList.add(`${seasonId}-water`);
+                }
+            }
+        }
+        
+        // Create seasonal particles based on current season or event
+        function updateSeasonalParticles() {
+            // Clear existing particles
+            seasonalParticles.value = [];
+            
+            // Determine particle type based on current event or season
+            let particleType = null;
+            let particleConfig = null;
+            
+            if (currentSpecialEvent.value) {
+                switch (currentSpecialEvent.value) {
+                    case 'halloween':
+                        particleType = 'ghost';
+                        particleConfig = { count: 3, colors: ['#F8BBD0', '#E1BEE7', '#D1C4E9'] };
+                        break;
+                    case 'christmas':
+                        particleType = 'snow';
+                        particleConfig = { count: 20, colors: ['#FFFFFF', '#E3F2FD', '#BBDEFB'] };
+                        break;
+                    case 'easter':
+                        particleType = 'egg';
+                        particleConfig = { count: 5, colors: ['#F8BBD0', '#E1BEE7', '#D1C4E9', '#FFECB3', '#FFF9C4'] };
+                        break;
+                    case 'devBirthday':
+                        particleType = 'confetti';
+                        particleConfig = { count: 15, colors: ['#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE'] };
+                        break;
+                }
+            } else if (currentSeason.value) {
+                switch (currentSeason.value) {
+                    case 'winter':
+                        particleType = 'snow';
+                        particleConfig = { count: 10, colors: ['#FFFFFF', '#E3F2FD'] };
+                        break;
+                    case 'spring':
+                        particleType = 'petal';
+                        particleConfig = { count: 8, colors: ['#F8BBD0', '#E1BEE7', '#FFCDD2'] };
+                        break;
+                    case 'summer':
+                        // Add sun rays instead of particles
+                        addSummerSunEffect();
+                        break;
+                    case 'autumn':
+                        particleType = 'leaf';
+                        particleConfig = { count: 6, colors: ['#FFCC80', '#FFB74D', '#FFA726', '#FF8A65', '#FF7043'] };
+                        break;
+                }
+            }
+            
+            // Generate particles if we have a valid type
+            if (particleType && particleConfig) {
+                for (let i = 0; i < particleConfig.count; i++) {
+                    addSeasonalParticle(particleType, particleConfig.colors);
+                }
+            }
+        }
+        
+        // Add a single seasonal particle
+        function addSeasonalParticle(type, colors) {
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const size = Math.random() * (type === 'snow' ? 6 : 15) + (type === 'snow' ? 2 : 5);
+            
+            seasonalParticles.value.push({
+                id: Date.now() + Math.random(),
+                type: type,
+                color: color,
+                x: Math.random() * 100,
+                y: Math.random() * 30,
+                size: size,
+                speed: Math.random() * 1 + 0.5,
+                opacity: Math.random() * 0.5 + 0.5,
+                rotation: Math.random() * 360
+            });
+            
+            // Move particles and remove when they go offscreen
+            const particleId = seasonalParticles.value[seasonalParticles.value.length - 1].id;
+            moveSeasonalParticle(particleId);
+        }
+        
+        // Move a seasonal particle
+        function moveSeasonalParticle(id) {
+            const moveInterval = setInterval(() => {
+                const index = seasonalParticles.value.findIndex(p => p.id === id);
+                if (index === -1) {
+                    clearInterval(moveInterval);
+                    return;
+                }
+                
+                const particle = seasonalParticles.value[index];
+                
+                // Update position based on type
+                switch (particle.type) {
+                    case 'snow':
+                        particle.y += particle.speed * 0.2;
+                        particle.x += Math.sin(particle.y / 10) * 0.5;
+                        break;
+                    case 'leaf':
+                    case 'petal':
+                        particle.y += particle.speed * 0.3;
+                        particle.x += Math.sin(particle.y / 15) * 1.2;
+                        particle.rotation += particle.speed * 2;
+                        break;
+                    case 'egg':
+                    case 'confetti':
+                        particle.y += particle.speed * 0.7;
+                        particle.rotation += particle.speed * 5;
+                        break;
+                    case 'ghost':
+                        particle.y += Math.sin(particle.x / 20) * 0.3;
+                        particle.x += particle.speed * 0.2;
+                        break;
+                }
+                
+                // Remove particles that go offscreen
+                if (particle.y > 100 || particle.x > 100 || particle.x < -10) {
+                    seasonalParticles.value.splice(index, 1);
+                    clearInterval(moveInterval);
+                    
+                    // Add a new particle to replace the removed one (maintain count)
+                    if (currentSeason.value || currentSpecialEvent.value) {
+                        setTimeout(() => {
+                            let colors;
+                            switch (particle.type) {
+                                case 'snow': colors = ['#FFFFFF', '#E3F2FD', '#BBDEFB']; break;
+                                case 'leaf': colors = ['#FFCC80', '#FFB74D', '#FFA726', '#FF8A65', '#FF7043']; break;
+                                case 'petal': colors = ['#F8BBD0', '#E1BEE7', '#FFCDD2']; break;
+                                case 'egg': colors = ['#F8BBD0', '#E1BEE7', '#D1C4E9', '#FFECB3', '#FFF9C4']; break;
+                                case 'confetti': colors = ['#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE']; break;
+                                case 'ghost': colors = ['#F8BBD0', '#E1BEE7', '#D1C4E9']; break;
+                                default: colors = ['#FFFFFF'];
+                            }
+                            addSeasonalParticle(particle.type, colors);
+                        }, Math.random() * 3000);
+                    }
+                }
+            }, 50);
+        }
+        
+        // Add summer sun effect
+        function addSummerSunEffect() {
+            const waterContainer = document.querySelector('.water');
+            if (!waterContainer) return;
+            
+            // Remove existing sun if present
+            const existingSun = document.querySelector('.seasonal-sun');
+            if (existingSun) existingSun.remove();
+            
+            // Create sun element
+            const sun = document.createElement('div');
+            sun.className = 'seasonal-sun';
+            waterContainer.appendChild(sun);
+            
+            // Add sun rays
+            for (let i = 0; i < 8; i++) {
+                const ray = document.createElement('div');
+                ray.className = 'sun-ray';
+                ray.style.transform = `rotate(${i * 45}deg)`;
+                ray.style.animationDelay = `${i * 0.3}s`;
+                sun.appendChild(ray);
+            }
+        }
 
         return {
             money,
@@ -1843,6 +2247,7 @@ createApp({
             isFishing,
             lineLength,
             boatPosition,
+            boatVerticalPosition,
             fishInWater,
             upgrades,
             showSplash,
@@ -1893,10 +2298,15 @@ createApp({
             showInbox,
             toggleInbox,
             markEmailAsRead,
-            currentSeason,
-            currentSpecialEvent,
+            totalXP,
+            lastXpGain,
+            fishingSkills,
+            totalSkillsLevel,
+            getSkillIcon,
+            calculateTotalSkillsBonus,
             seasonalParticles,
-            showSun
+            currentSeason,
+            currentSpecialEvent
         };
     }
 }).mount('#app');

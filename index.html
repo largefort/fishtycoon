@@ -13,6 +13,8 @@
       }
     }
     </script>
+    <!-- Add background music -->
+    <audio id="background-music" src="game.mp3" loop preload="auto"></audio>
 </head>
 <body>
     <!-- Title Screen -->
@@ -168,6 +170,16 @@
         </div>
     </div>
 
+    <!-- Add script to start music when user interacts -->
+    <script>
+        document.addEventListener('click', function() {
+            const music = document.getElementById('background-music');
+            if (music && music.paused) {
+                music.play().catch(e => console.log("Audio play failed:", e));
+            }
+        }, {once: true});
+    </script>
+
     <div id="app" class="hidden-app">
         <!-- Offline Progress Modal -->
         <div class="modal-overlay" v-if="showOfflineModal">
@@ -210,6 +222,8 @@
                      :class="currentSpecialEvent || currentSeason">
                     <i class="material-icons" v-if="currentSpecialEvent === 'halloween'">pets</i>
                     <i class="material-icons" v-else-if="currentSpecialEvent === 'christmas'">ac_unit</i>
+                    <i class="material-icons" v-else-if="currentSpecialEvent === 'easter'">egg</i>
+                    <i class="material-icons" v-else-if="currentSpecialEvent === 'devBirthday'">cake</i>
                     <i class="material-icons" v-else-if="currentSeason === 'winter'">ac_unit</i>
                     <i class="material-icons" v-else-if="currentSeason === 'spring'">local_florist</i>
                     <i class="material-icons" v-else-if="currentSeason === 'summer'">wb_sunny</i>
@@ -217,6 +231,8 @@
                     <div class="seasonal-status-tooltip">
                         <span v-if="currentSpecialEvent === 'halloween'">Halloween Event</span>
                         <span v-else-if="currentSpecialEvent === 'christmas'">Christmas Event</span>
+                        <span v-else-if="currentSpecialEvent === 'easter'">Easter Event</span>
+                        <span v-else-if="currentSpecialEvent === 'devBirthday'">Developer's Birthday!</span>
                         <span v-else-if="currentSeason">{{ CONFIG.seasonalEvents.seasons[currentSeason].name }} Season</span>
                     </div>
                 </div>
@@ -246,6 +262,10 @@
                 </div>
                 <div class="tab" :class="{ active: activeTab === 'upgrades' }" @click="changeTab('upgrades')">
                     <i class="material-icons">upgrade</i> Upgrades
+                </div>
+                <div class="tab" :class="{ active: activeTab === 'skills' }" @click="changeTab('skills')">
+                    <i class="material-icons">trending_up</i> Skills
+                    <span>(Lvl {{ totalSkillsLevel }})</span>
                 </div>
                 <div class="tab" :class="{ active: activeTab === 'prestige' }" @click="changeTab('prestige')">
                     <i class="material-icons">stars</i> Prestige
@@ -386,7 +406,7 @@
                                  top: particle.y + '%', 
                                  width: particle.size + 'px', 
                                  height: particle.size + 'px',
-                                 backgroundColor: particle.color || 'white',
+                                 backgroundColor: particle.type !== 'egg' ? (particle.color || 'white') : 'transparent',
                                  opacity: particle.opacity,
                                  transform: `rotate(${particle.rotation}deg)`
                              }">
@@ -394,7 +414,7 @@
                         
                         <!-- Fish in water with enhanced SVG -->
                         <template v-for="fish in fishInWater" :key="fish.id">
-                            <div class="fish" :style="{ left: `${fish.position}%`, top: `${fish.depth}%`, transform: `scaleX(${fish.direction})` }">
+                            <div class="fish" :style="{ left: `${fish.position}%`, top: `${fish.depth}%`, transform: `scaleX(${fish.direction})` }" :data-id="fish.id">
                                 <svg width="40" height="20" viewBox="0 0 40 20">
                                     <defs>
                                         <radialGradient :id="'fishGradient'+fish.id" cx="70%" cy="50%" r="50%" fx="70%" fy="50%">
@@ -894,6 +914,72 @@
                         <button @click="purchaseUpgrade(upgrade.id)" :disabled="money < upgrade.cost || (upgrade.maxLevel && upgrade.level >= upgrade.maxLevel)">
                             {{ money < upgrade.cost ? 'Need more money' : (upgrade.maxLevel && upgrade.level >= upgrade.maxLevel) ? 'Maxed Out' : 'Upgrade' }}
                         </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div v-if="activeTab === 'skills'" class="skills-system">
+                <h2>Fishing Skills</h2>
+                
+                <div class="skills-header">
+                    <div class="fishing-xp-info">
+                        <div class="xp-progress">
+                            <div class="xp-label">Total Fishing XP:</div>
+                            <div class="xp-amount">{{ formatNumber(totalXP) }}</div>
+                        </div>
+                        <div class="skills-level-summary">
+                            <div class="summary-item">
+                                <div class="summary-label">Skills Level:</div>
+                                <div class="summary-value">{{ totalSkillsLevel }}</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">Total Skills Bonus:</div>
+                                <div class="summary-value">+{{ calculateTotalSkillsBonus() }}%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="last-xp-gain" v-if="lastXpGain > 0">
+                        <i class="material-icons">add_circle</i> +{{ lastXpGain }} XP
+                    </div>
+                </div>
+                
+                <div class="skills-grid">
+                    <div v-for="skill in fishingSkills" :key="skill.id" class="skill-card">
+                        <div class="skill-icon">
+                            <i class="material-icons">{{ getSkillIcon(skill.id) }}</i>
+                        </div>
+                        <div class="skill-details">
+                            <h3>{{ skill.name }} <span class="skill-level">Lvl {{ skill.level }}</span></h3>
+                            <p>{{ skill.description }}</p>
+                            <div class="skill-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" :style="{ width: `${(skill.xp / skill.nextLevelXp) * 100}%` }"></div>
+                                </div>
+                                <div class="progress-text">
+                                    {{ formatNumber(skill.xp) }} / {{ formatNumber(skill.nextLevelXp) }} XP
+                                </div>
+                            </div>
+                            <div class="skill-bonus">
+                                Current bonus: +{{ (skill.level * skill.bonusPerLevel * 100).toFixed(1) }}%
+                            </div>
+                            <div v-if="skill.level < skill.maxLevel" class="next-level-bonus">
+                                Next level: +{{ ((skill.level + 1) * skill.bonusPerLevel * 100).toFixed(1) }}%
+                            </div>
+                            <div v-else class="max-level-badge">MAX LEVEL</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="skills-tips">
+                    <div class="tip-box">
+                        <h4><i class="material-icons">tips_and_updates</i> Skill Tips</h4>
+                        <ul>
+                            <li>Catch fish to earn XP and level up your skills</li>
+                            <li>Rarer fish give more XP</li>
+                            <li>The Patience skill increases XP gain from all fishing</li>
+                            <li>Skill bonuses stack with other upgrades and prestige bonuses</li>
+                        </ul>
                     </div>
                 </div>
             </div>

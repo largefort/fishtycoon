@@ -61,6 +61,68 @@ export const CONFIG = {
       { level: 20, title: "Trawler God" }
     ]
   },
+  // Fishing skills system settings
+  skillsSystem: {
+    enabled: true,
+    xpPerFish: 1, // Base XP earned per fish caught
+    xpMultiplierByRarity: {
+      Common: 1,
+      Rare: 2,
+      Epic: 5,
+      Legendary: 10,
+      Mythic: 20
+    },
+    skills: [
+      {
+        id: "casting",
+        name: "Casting",
+        description: "Increases fishing power per cast",
+        maxLevel: 20,
+        bonusPerLevel: 0.05, // 5% increase per level
+        xpToLevelUp: (level) => Math.floor(100 * Math.pow(1.5, level - 1))
+      },
+      {
+        id: "efficiency",
+        name: "Efficiency",
+        description: "Reduces fishing time",
+        maxLevel: 15,
+        bonusPerLevel: 0.03, // 3% faster fishing per level
+        xpToLevelUp: (level) => Math.floor(150 * Math.pow(1.6, level - 1))
+      },
+      {
+        id: "luck",
+        name: "Luck",
+        description: "Increases chance of rare fish",
+        maxLevel: 20,
+        bonusPerLevel: 0.02, // 2% increased rare fish chance per level
+        xpToLevelUp: (level) => Math.floor(120 * Math.pow(1.7, level - 1))
+      },
+      {
+        id: "knowledge",
+        name: "Fish Knowledge",
+        description: "Increases fish value",
+        maxLevel: 25,
+        bonusPerLevel: 0.04, // 4% increase in fish value per level
+        xpToLevelUp: (level) => Math.floor(100 * Math.pow(1.6, level - 1))
+      },
+      {
+        id: "patience",
+        name: "Patience",
+        description: "Increases XP gained from fishing",
+        maxLevel: 10,
+        bonusPerLevel: 0.1, // 10% more XP per level
+        xpToLevelUp: (level) => Math.floor(200 * Math.pow(1.8, level - 1))
+      },
+      {
+        id: "automation",
+        name: "Automation",
+        description: "Increases auto-fishing rate",
+        maxLevel: 15,
+        bonusPerLevel: 0.05, // 5% increase in auto-fishing rate per level
+        xpToLevelUp: (level) => Math.floor(180 * Math.pow(1.75, level - 1))
+      }
+    ]
+  },
   // Seasonal event settings
   seasonalEvents: {
     enabled: true,
@@ -105,6 +167,20 @@ export const CONFIG = {
         day: 25, // 25th
         range: 7, // Days before and after
         fishModifier: "christmas"
+      },
+      easter: {
+        name: "Easter",
+        month: 4, // April
+        day: 15, // Mid-April
+        range: 14, // Two weeks around Easter
+        fishModifier: "easter"
+      },
+      devBirthday: {
+        name: "Developer's Birthday",
+        month: 5, // May
+        day: 8, // 8th
+        range: 1, // Only 8th and 9th
+        fishModifier: "birthday"
       }
     }
   }
