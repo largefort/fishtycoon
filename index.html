@@ -43,26 +43,6 @@
             font-size: 16px;
         }
         
-        .steam-controls {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .steam-button {
-            background: #2a475e;
-            border: none;
-            color: #c7d5e0;
-            padding: 4px 10px;
-            border-radius: 2px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.2s;
-        }
-        
-        .steam-button:hover {
-            background: #3d6a8d;
-        }
-        
         .game-container {
             flex: 1;
             width: 100%;
@@ -109,13 +89,9 @@
     <div class="steam-container">
         <div class="steam-header">
             <div class="steam-title">Trawler's Empire</div>
-            <div class="steam-controls">
-                <button class="steam-button" onclick="document.querySelector('iframe').requestFullscreen()">Fullscreen</button>
-                <button class="steam-button" onclick="location.reload()">Reload</button>
-            </div>
         </div>
         <div class="game-container">
-            <iframe src="index.html" allowfullscreen></iframe>
+            <iframe src="main.html" allowfullscreen></iframe>
             <div class="mobile-warning">
                 <h2>Desktop Only</h2>
                 <p>Trawler's Empire Steam Edition is designed for desktop and PC use only.</p>
